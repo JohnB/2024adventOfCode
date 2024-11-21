@@ -1,13 +1,13 @@
 <!-- vim: syntax=markdown -->
 
-# Day 25
+# Day 01
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.12.0"}
+  {:kino, "~> 0.14.2"}
 ])
 
-IEx.Helpers.c("/Users/johnb/dev/2023adventOfCode/advent_of_code.ex")
+IEx.Helpers.c("/Users/johnb/dev/2024adventOfCode/advent_of_code.ex")
 alias AdventOfCode, as: AOC
 alias Kino.Input
 
@@ -48,34 +48,11 @@ end
 ## Part 1
 
 ```elixir
-defmodule Day25 do
-  def show_graph do
-    """
-    graph TD;
-      A---B;
-      A---C;
-      A---D;
-      B---D;
-      C---D;
-    """
-  end
+defmodule Day01 do
 
-  def solve(text) do
+  def solve1(text) do
     text
     |> AOC.as_single_lines()
-    # |> Enum.reduce([1, 2, 3, 4], fn x, acc -> x * acc end)
-    |> Enum.reduce(["graph TD;"], fn line, acc ->
-      [node, others] = String.split(line, ":", trim: true)
-      others = String.split(others, " ", trim: true)
-
-      Enum.reduce(others, acc, fn other, acc1 -> ["  #{node}---#{other};" | acc1] end)
-    end)
-    |> List.flatten()
-    |> Enum.reverse()
-    |> Enum.take(200)
-    # |> IO.inspect()
-    # |> Enum.count()
-    |> Enum.join("\n")
   end
 
   def solve2(text) do
@@ -83,22 +60,19 @@ defmodule Day25 do
   end
 end
 
-# example data has 34 edges
-# actual data has 3296 edges
-
-# p1data.()
-# |> Day25.solve()
-# |> IO.inspect(label: "\n*** Part 1 solution (example: )")
+p1data.()
+|> Day01.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: )")
 
 #
 
 # p1data.()
-# |> Day25.solve2()
+# |> Day01.solve2()
 # |> IO.inspect(label: "\n*** Part 2 solution (example: )")
 
 #
 ```
 
 ```elixir
-Kino.Mermaid.new(Day25.solve(p1data.()))
+Kino.Mermaid.new(Day01.solve(p1data.()))
 ```
