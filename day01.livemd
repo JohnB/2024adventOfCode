@@ -1,0 +1,104 @@
+<!-- vim: syntax=markdown -->
+
+# Day 25
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.12.0"}
+])
+
+IEx.Helpers.c("/Users/johnb/dev/2023adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/03/04/' > day04.livemd`
+#
+```
+
+## Installation and Data
+
+```elixir
+input_p1example = Kino.Input.textarea("Example Data")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_p1puzzleInput = Kino.Input.textarea("Puzzle Input")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+p1data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_p1example)) ||
+    Kino.Input.read(input_p1puzzleInput)
+end
+```
+
+## Part 1
+
+```elixir
+defmodule Day25 do
+  def show_graph do
+    """
+    graph TD;
+      A---B;
+      A---C;
+      A---D;
+      B---D;
+      C---D;
+    """
+  end
+
+  def solve(text) do
+    text
+    |> AOC.as_single_lines()
+    # |> Enum.reduce([1, 2, 3, 4], fn x, acc -> x * acc end)
+    |> Enum.reduce(["graph TD;"], fn line, acc ->
+      [node, others] = String.split(line, ":", trim: true)
+      others = String.split(others, " ", trim: true)
+
+      Enum.reduce(others, acc, fn other, acc1 -> ["  #{node}---#{other};" | acc1] end)
+    end)
+    |> List.flatten()
+    |> Enum.reverse()
+    |> Enum.take(200)
+    # |> IO.inspect()
+    # |> Enum.count()
+    |> Enum.join("\n")
+  end
+
+  def solve2(text) do
+    text
+  end
+end
+
+# example data has 34 edges
+# actual data has 3296 edges
+
+# p1data.()
+# |> Day25.solve()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: )")
+
+#
+
+# p1data.()
+# |> Day25.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+
+#
+```
+
+```elixir
+Kino.Mermaid.new(Day25.solve(p1data.()))
+```
