@@ -1,6 +1,6 @@
 <!-- vim: syntax=markdown -->
 
-# Day 01
+# Day 02
 
 ```elixir
 Mix.install([
@@ -48,7 +48,7 @@ end
 ## Solution
 
 ```elixir
-defmodule Day01 do
+defmodule Day02 do
 
   def solve1(text) do
     [llist, rlist] = text
@@ -89,12 +89,12 @@ end
 # Example:
 
 # p1data.()
-# |> Day01.solve1()
+# |> Day02.solve1()
 # |> IO.inspect(label: "\n*** Part 1 solution (example: )")
 #
 
 p1data.()
-|> Day01.solve2()
+|> Day02.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: )")
 #
 ```
