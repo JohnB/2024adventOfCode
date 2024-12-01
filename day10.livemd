@@ -1,0 +1,75 @@
+<!-- vim: syntax=markdown -->
+
+# Day 10
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.14.2"}
+])
+
+IEx.Helpers.c("/Users/johnb/dev/2104adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+
+# Note: when making the next template, something like this works well:
+#   `cat day04.livemd | sed 's/03/04/' > day04.livemd`
+#
+```
+
+## Installation and Data
+
+```elixir
+input_p1example = Kino.Input.textarea("Example Data")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_p1puzzleInput = Kino.Input.textarea("Puzzle Input")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input_source_select =
+  Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+p1data = fn ->
+  (Kino.Input.read(input_source_select) == :example &&
+     Kino.Input.read(input_p1example)) ||
+    Kino.Input.read(input_p1puzzleInput)
+end
+```
+
+## Solution
+
+```elixir
+defmodule Day10 do
+
+  def solve1(text) do
+    text
+    |> AOC.as_single_lines()
+  end
+
+  def solve2(text) do
+    text
+    |> AOC.as_single_lines()
+  end
+end
+
+# Example:
+
+p1data.()
+|> Day10.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+#
+
+# p1data.()
+# |> Day10.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+#
+```
