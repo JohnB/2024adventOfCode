@@ -51,50 +51,25 @@ end
 defmodule Day02 do
 
   def solve1(text) do
-    [llist, rlist] = text
-      |> AOC.as_single_lines()
-      |> Enum.reduce([[], []], fn line, [lll, rrr] = acc ->
-        # IO.inspect([line, acc])
-        [[_, left, right]] = Regex.scan(~r/(\d+)\W+(\d+)/, line)
-        [[lll ++ [String.to_integer(left)]], [rrr ++ [String.to_integer(right)]]]
-      end)
-      |> Enum.map(&List.flatten/1)
-
-    Enum.zip(Enum.sort(llist), Enum.sort(rlist))
-    # |> Enum.chunk_every(2, 2)
-        |> IO.inspect()
-    |> Enum.map(fn {ll, rr} = pair -> abs(ll - rr) end)
-    |> Enum.sum()
+    text
+    |> AOC.as_single_lines()
   end
 
   def solve2(text) do
-    [llist, rlist] = text
-      |> AOC.as_single_lines()
-      |> Enum.reduce([[], []], fn line, [lll, rrr] = acc ->
-        # IO.inspect([line, acc])
-        [[_, left, right]] = Regex.scan(~r/(\d+)\W+(\d+)/, line)
-        [[lll ++ [String.to_integer(left)]], [rrr ++ [String.to_integer(right)]]]
-      end)
-      |> Enum.map(&List.flatten/1)
-        |> IO.inspect()
-
-    Enum.reduce(llist, 0, fn lnum, acc ->
-      rcount = Enum.filter(rlist, fn rr -> rr == lnum end) |> Enum.sum()
-      (acc + rcount)
-        |> IO.inspect(label: "rcount(#{rcount} for #{lnum})")
-    end)
+    text
+    |> AOC.as_single_lines()
   end
 end
 
 # Example:
 
-# p1data.()
-# |> Day02.solve1()
-# |> IO.inspect(label: "\n*** Part 1 solution (example: )")
+p1data.()
+|> Day02.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: )")
 #
 
-p1data.()
-|> Day02.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# p1data.()
+# |> Day02.solve2()
+# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
 #
 ```
