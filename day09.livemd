@@ -3,29 +3,30 @@
 # Day 09
 
 ```elixir
-Mix.install([
-  {:kino, "~> 0.14.2"}
-])
-
-IEx.Helpers.c("/Users/johnb/dev/2094adventOfCode/advent_of_code.ex")
-alias AdventOfCode, as: AOC
-alias Kino.Input
-
 # Note: when making the next template, something like this works well:
 #   `cat day04.livemd | sed 's/09/04/' > day04.livemd`
 #
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
 ```
 
 ## Installation and Data
 
 ```elixir
-input_p1example = Kino.Input.textarea("Example Data")
+input_example = Kino.Input.textarea("Example Data")
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-input_p1puzzleInput = Kino.Input.textarea("Puzzle Input")
+input_puzzleInput = Kino.Input.textarea("Puzzle Input")
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
@@ -38,10 +39,10 @@ input_source_select =
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-p1data = fn ->
+data = fn ->
   (Kino.Input.read(input_source_select) == :example &&
-     Kino.Input.read(input_p1example)) ||
-    Kino.Input.read(input_p1puzzleInput)
+     Kino.Input.read(input_example)) ||
+    Kino.Input.read(input_puzzleInput)
 end
 ```
 
@@ -66,12 +67,12 @@ end
 
 # Example:
 
-p1data.()
+data.()
 |> Day09.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: )")
 #
 
-# p1data.()
+# data.()
 # |> Day09.solve2()
 # |> IO.inspect(label: "\n*** Part 2 solution (example: )")
 #

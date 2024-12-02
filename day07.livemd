@@ -7,7 +7,7 @@ Mix.install([
   {:kino, "~> 0.14.2"}
 ])
 
-IEx.Helpers.c("/Users/johnb/dev/2074adventOfCode/advent_of_code.ex")
+IEx.Helpers.c("/Users/johnb/dev/2024adventOfCode/advent_of_code.ex")
 alias AdventOfCode, as: AOC
 alias Kino.Input
 
