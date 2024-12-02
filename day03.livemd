@@ -48,16 +48,19 @@ end
 ## Solution
 
 ```elixir
+# When inspecting lists of numbers, use "charlists: :as_lists"
 defmodule Day03 do
-
-  def solve1(text) do
+  def parse(text) do
     text
     |> AOC.as_single_lines()
   end
 
+  def solve1(text) do
+    parse(text)
+  end
+
   def solve2(text) do
-    text
-    |> AOC.as_single_lines()
+    parse(text)
   end
 end
 

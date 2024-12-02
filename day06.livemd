@@ -12,7 +12,7 @@ alias AdventOfCode, as: AOC
 alias Kino.Input
 
 # Note: when making the next template, something like this works well:
-#   `cat day04.livemd | sed 's/03/04/' > day04.livemd`
+#   `cat day04.livemd | sed 's/06/04/' > day04.livemd`
 #
 ```
 
@@ -48,16 +48,19 @@ end
 ## Solution
 
 ```elixir
+# When inspecting lists of numbers, use "charlists: :as_lists"
 defmodule Day06 do
-
-  def solve1(text) do
+  def parse(text) do
     text
     |> AOC.as_single_lines()
   end
 
+  def solve1(text) do
+    parse(text)
+  end
+
   def solve2(text) do
-    text
-    |> AOC.as_single_lines()
+    parse(text)
   end
 end
 

@@ -49,27 +49,74 @@ end
 
 ```elixir
 defmodule Day02 do
-
-  def solve1(text) do
+  def parse(text) do
     text
     |> AOC.as_single_lines()
+    |> Enum.map(fn line ->
+      line
+      |> String.split(~r/\W+/, trim: true)
+      |> Enum.map(&String.to_integer/1)
+    end)
+  end
+
+  def is_increasing?(report) do
+    report
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.all?(fn [left, right] -> right > left && (right - left <= 3) end)
+  end
+
+  def is_decreasing?(report) do
+    report
+    |> Enum.reverse()
+    |> is_increasing?()
+  end
+  
+  def solve1(text) do
+    data = parse(text)
+
+    data
+    |> Enum.filter(fn report ->
+      is_increasing?(report) || is_decreasing?(report)
+    end)
+    |> Enum.count()
+  end
+
+  def is_safe_without_one?(report) do
+    report
+    |> Enum.with_index()
+    |> Enum.any?(fn {_item, index} -> 
+      {_, shorter_report} = List.pop_at(report, index)
+      is_increasing?(shorter_report) || is_decreasing?(shorter_report)
+    end)
   end
 
   def solve2(text) do
-    text
-    |> AOC.as_single_lines()
+    data = parse(text)
+
+    data
+    |> Enum.filter(fn report ->
+      is_increasing?(report) || is_decreasing?(report) || is_safe_without_one?(report)
+    end)
+    |> Enum.count()
   end
 end
 
 # Example:
+# 7 6 4 2 1
+# 1 2 7 8 9
+# 9 7 6 2 1
+# 1 3 2 4 5
+# 8 6 4 4 1
+# 1 3 6 7 9
 
 p1data.()
 |> Day02.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 2)")
+# 356
 
-# p1data.()
-# |> Day02.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+p1data.()
+|> Day02.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 4)")
+# 413
+
 ```
