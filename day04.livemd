@@ -52,15 +52,67 @@ end
 defmodule Day04 do
   def parse(text) do
     text
-    |> AOC.as_single_lines()
+    |> AOC.as_grid()
+  end
+
+  def spans_edge?(grid, m, a, s) do
+    mx = AOC.grid_x(grid, m)
+    ax = AOC.grid_x(grid, a)
+    sx = AOC.grid_x(grid, s)
+    
+    0 in [mx, ax, sx] && 
+      (grid.grid_width - 1) in [mx, ax, sx]
+  end
+
+  def find_all_xmas(grid) do
+    grid
+    |> AOC.grid_cells()
+    |> Enum.filter(fn cell_id -> grid[cell_id] == "X" end)
+    |> Enum.reduce(0, fn cell_id, count ->
+      neigh = AOC.neighbors8(grid, cell_id)
+      Enum.reduce(neigh, count, fn n_cell_id, acc ->
+        delta = n_cell_id - cell_id
+        if grid[n_cell_id] == "M" 
+          && grid[n_cell_id + delta] == "A"
+          && grid[n_cell_id + 2 * delta] == "S" &&
+          !spans_edge?(grid, n_cell_id, n_cell_id + delta, n_cell_id + 2 * delta) do
+          acc + 1
+        else
+          acc
+        end
+      end)
+    end)
+  end
+
+  def find_all_masx(grid) do
+    grid
+    |> AOC.grid_cells()
+    |> Enum.filter(fn cell_id -> grid[cell_id] == "A" end)
+    |> Enum.reject(fn cell_id -> Enum.count(AOC.neighbors8(grid, cell_id)) < 8 end)
+    |> Enum.filter(fn cell_id ->
+      corners = [
+        grid[cell_id - 1 - grid.grid_width], # up-left
+        grid[cell_id + 1 - grid.grid_width], # up-right
+        grid[cell_id - 1 + grid.grid_width], # down-left
+        grid[cell_id + 1 + grid.grid_width]  # down-right
+      ]
+      mmss = corners
+        |> Enum.sort()
+        |> Enum.join()
+      mmss == "MMSS" && 
+        List.first(corners) != List.last(corners) # disallow MAM SAS
+    end)
+    |> Enum.count()
   end
 
   def solve1(text) do
-    parse(text)
+    grid = parse(text)
+    find_all_xmas(grid)
   end
 
   def solve2(text) do
-    parse(text)
+    grid = parse(text)
+    find_all_masx(grid)
   end
 end
 
@@ -68,11 +120,12 @@ end
 
 p1data.()
 |> Day04.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 18)")
+# 2718
 
-# p1data.()
-# |> Day04.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+p1data.()
+|> Day04.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 9)")
+# 2046
+
 ```
