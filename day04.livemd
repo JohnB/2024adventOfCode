@@ -14,6 +14,7 @@ alias Kino.Input
 # Note: when making the next template, something like this works well:
 #   `cat day04.livemd | sed 's/04/04/' > day04.livemd`
 #
+# When inspecting lists of numbers, use "charlists: :as_lists"
 ```
 
 ## Installation and Data
@@ -48,7 +49,6 @@ end
 ## Solution
 
 ```elixir
-# When inspecting lists of numbers, use "charlists: :as_lists"
 defmodule Day04 do
   def parse(text) do
     text
