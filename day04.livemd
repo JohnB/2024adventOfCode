@@ -79,14 +79,15 @@ defmodule Day04 do
 
     grid
     |> AOC.grid_cells()
-    |> Enum.filter(fn cell_id -> grid[cell_id] == "A" end)
-    |> Enum.filter(fn cell_id -> Enum.count(AOC.neighbors8(grid, cell_id)) == 8 end)
-    |> Enum.filter(fn cell_id ->
+    |> Enum.filter(fn a_id -> grid[a_id] == "A" end)
+    # Disallow "A" on any edge (thus less than 8 neighbors)
+    |> Enum.filter(fn a_id -> Enum.count(AOC.neighbors8(grid, a_id)) == 8 end)
+    |> Enum.filter(fn a_id ->
       corners = [
-        grid[cell_id - 1 - grid.grid_width], # up-left
-        grid[cell_id + 1 - grid.grid_width], # up-right
-        grid[cell_id - 1 + grid.grid_width], # down-left
-        grid[cell_id + 1 + grid.grid_width]  # down-right
+        grid[a_id - 1 - grid.grid_width], # up-left
+        grid[a_id + 1 - grid.grid_width], # up-right
+        grid[a_id - 1 + grid.grid_width], # down-left
+        grid[a_id + 1 + grid.grid_width]  # down-right
       ]
       mmss = Enum.sort(corners) |> Enum.join()
       
