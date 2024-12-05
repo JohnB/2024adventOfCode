@@ -19,13 +19,13 @@ alias Kino.Input
 ## Installation and Data
 
 ```elixir
-input_p1example = Kino.Input.textarea("Example Data")
+input_p1example = Kino.Input.textarea("Example Data", monospace: true)
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-input_p1puzzleInput = Kino.Input.textarea("Puzzle Input")
+input_p1puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
