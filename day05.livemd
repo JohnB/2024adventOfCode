@@ -72,24 +72,12 @@ defmodule Day05 do
     [rules, updates]
   end
 
-  # The list is reversed at this point, so the head (last) must come after any in the prev list.
-  def is_after?([_only_one_left], _rules), do: true
-  def is_after?([last_page | earlier_pages], rules) do
-    Enum.all?(earlier_pages, fn earlier_page -> 
-      is_nil(rules[last_page]) ||
-        !(earlier_page in rules[last_page])
-      end) && 
-      is_after?(earlier_pages, rules)
-  end
-
   def solve1(text) do
     [rules, updates] = parse(text)
 
     updates
     |> Enum.filter(fn progression ->
-      progression
-      |> Enum.reverse()
-      |> is_after?(rules)
+      progression == Enum.sort(progression, fn a, b -> !(a in (rules[b] || [])) end)
     end)
     |> Enum.map(fn progression ->
       {center, _others} = List.pop_at(progression, floor(Enum.count(progression) / 2))
@@ -98,82 +86,15 @@ defmodule Day05 do
     |> Enum.sum()
   end
 
-  def fix_order(_rules, [left]), do: [left]
-  def fix_order(rules, [left, right]) do
-    # IO.inspect([left, right], charlists: :as_lists, label: "fix_order2" )
-    case {rules[left], rules[right], 
-      right in (rules[left] || []), left in (rules[right] || [])} 
-      # |> IO.inspect(charlists: :as_lists, label: "case" )
-    do
-      {nil, nil, _, _} -> [left, right]
-      {_, _, true, _} -> [left, right]
-      {_, _, _, true} -> [right, left]
-      _ -> [left, right]
-    end
-    # |> IO.inspect(charlists: :as_lists, label: "fix_order2?" )
-  end
-  def fix_order(rules, [left, right | rest]) do
-    # IO.inspect([left, right], charlists: :as_lists, label: "fix_order3" )
-    case {rules[left], rules[right], 
-      right in (rules[left] || []), left in (rules[right] || [])} 
-      # |> IO.inspect(charlists: :as_lists, label: "case" )
-    do
-      {nil, nil, _, _} -> [left] ++ fix_order(rules, [right] ++ rest)
-      {_, _, true, _} -> [left] ++ fix_order(rules, [right] ++ rest)
-      {_, _, _, true} -> [right] ++ fix_order(rules, [left] ++ rest)
-      _ -> [left] ++ fix_order(rules, [right] ++ rest)
-    end
-    # |> IO.inspect(charlists: :as_lists, label: "fix_order3?" )
-  end
-
   def solve2(text) do
     [rules, updates] = parse(text)
 
     updates
     |> Enum.reject(fn progression ->
-      progression
-      |> Enum.reverse()
-      |> is_after?(rules)
+      progression == Enum.sort(progression, fn a, b -> !(a in (rules[b] || [])) end)
     end)
     |> Enum.map(fn progression ->
-      # TODO: iterate correctly rather than just over-guessing
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
-      progression = fix_order(rules, progression)
+      Enum.sort(progression, fn a, b -> !(a in (rules[b] || [])) end)
     end)
     |> Enum.map(fn progression ->
       {center, _others} = List.pop_at(progression, floor(Enum.count(progression) / 2))
@@ -185,14 +106,14 @@ end
 
 # Example:
 
-# p1data.()
-# |> Day05.solve1()
-# |> IO.inspect(label: "\n*** Part 1 solution (example: 143)")
+p1data.()
+|> Day05.solve1()
+|> IO.inspect(label: "\n*** Part 1 solution (example: 143)")
 # 4790
 
 p1data.()
 |> Day05.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: 123)")
-#
+# 6319
 
 ```
