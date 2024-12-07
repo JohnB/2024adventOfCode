@@ -53,17 +53,15 @@ defmodule Day06 do
   @guards ["^", ">", "v", "<"]
   @floor "."
   @obstacle "#"
+  @looping_obstacle "O"
   @right_turn %{"^" => ">", ">" => "v", "v" => "<", "<" => "^"}
-  @forever 1..100_000
+  @forever 1..20000 #_500_000
   
   def find_guard(grid) do
     Enum.find(AOC.grid_cells(grid), fn c -> grid[c] in @guards end)
   end
 
   def next_pos(grid, pos, dir) do
-    # right_column? = AOC.grid_x(grid, pos) == (grid.grid_width - 1)
-    # bottom_row? = AOC.grid_y(grid, pos) == (grid.grid_height - 1)
-    
     case {dir, AOC.grid_x(grid, pos), AOC.grid_y(grid, pos)} do
       {"^", _, 0} -> :off_board
       {"^", _, _} -> pos - grid.grid_width
@@ -83,68 +81,115 @@ defmodule Day06 do
     {new_pos, new_dir}
   end
 
-  def solve1(text) do
-    grid = AOC.as_grid(text)
-    position = find_guard(grid)
+  def find_route(grid, position) do
     original_direction = grid[position]
     grid = Map.put(grid, position, @floor)
     path = MapSet.new([position])
     
-    # IO.inspect([position, grid[position]], charlists: :as_lists, label: "guard")
+    result = Enum.reduce_while(@forever, {position, original_direction, path}, fn _, {pos, dir, set} ->
+        pos2 = next_pos(grid, pos, dir)
+        {new_pos, new_dir} = turn_right(grid, pos, dir)
+  
+        case {pos2, grid[pos2], new_dir} 
+        # |> IO.inspect(charlists: :as_lists)
+        do
+          {:off_board, _, _} -> {:halt, {grid, set}}
+          {_, @floor, _} -> {:cont, {pos2, dir, MapSet.put(set, pos2)}}
+          {_, @obstacle, :off_board} -> {:halt, {grid, set}}
+          {_, @obstacle, _} -> {:cont, {new_pos, new_dir, MapSet.put(set, new_pos)}}
+        end
+      end)
+    case result do
+      {grid, set} -> {grid, set}
+      {_position, _direction, set} -> {:huh, set}
+    end
+    # |> IO.inspect(charlists: :as_lists)
+  end
 
-    Enum.reduce_while(@forever, {position, original_direction, path}, fn _, {pos, dir, set} ->
-      # IO.inspect([pos, grid[pos], dir, set], charlists: :as_lists, label: "iteration(#{iteration})")
-      pos2 = next_pos(grid, pos, dir)
-      {new_pos, new_dir} = turn_right(grid, pos, dir)
+  def find_route_and_mark_path(original_grid, position, block_pos) do
+    junk = Enum.reduce_while(@forever, 
+      {position, original_grid[position], MapSet.new(), 
+        Map.put(original_grid, block_pos, @looping_obstacle)
+        # |> AOC.display_grid()
+      },
+      fn _iteration, {pos, ahead_dir, path, grid} ->
+        ahead_pos = next_pos(grid, pos, ahead_dir)
 
-      case {pos2, grid[pos2], new_dir} 
-      # |> IO.inspect(charlists: :as_lists)
-      do
-        {:off_board, _, _} -> {:halt, Enum.count(set)}
-        {_, @floor, _} -> {:cont, {pos2, dir, MapSet.put(set, pos2)}}
-        {_, @obstacle, :off_board} -> {:halt, Enum.count(set)}
-        {_, @obstacle, _} -> {:cont, {new_pos, new_dir, MapSet.put(set, new_pos)}}
-      end
-    end)
+        case {ahead_pos, ahead_dir, grid[ahead_pos], 
+          MapSet.member?(path, {ahead_pos, ahead_dir})
+        } do
+          {:off_board, _, _, _} ->
+            {:halt, {:off_board, path, grid}}
+          {_, _, obstacle, _} when obstacle in [@obstacle, @looping_obstacle] -> 
+            {:cont, {pos, @right_turn[ahead_dir], path, grid
+                    # |> AOC.display_grid("73")
+
+            }}
+          {_, _, _, true} -> 
+            {:halt, {:loop, path, grid |> Map.put(ahead_pos, "L")}}
+          {_, _, _, _} -> 
+            {:cont, {ahead_pos, ahead_dir, MapSet.put(path, {ahead_pos, ahead_dir}), 
+              Map.put(grid, pos, ahead_dir)}}
+        end   
+      end)
+      
+      # case junk do
+      #   {:off_board, path, grid} -> {:off_board, path, grid}
+      #   {:loop, path, grid} -> {:loop, path, grid}
+      #   _ -> raise Integer
+      # end
+  end
+
+  def solve1(text) do
+    grid = AOC.as_grid(text)
+    position = find_guard(grid)
+    {_result, path} = find_route(grid, position)
+    Enum.count(path)
   end
 
   def solve2(text) do
     grid = AOC.as_grid(text)
-    possible_obstacles = AOC.grid_cells(grid)
-      |> Enum.map(fn cell_id -> grid[cell_id] == @floor end)
+    IO.inspect([grid.grid_width, grid.grid_height, grid.grid_width * grid.grid_height, @forever])
     position = find_guard(grid)
-    original_direction = grid[position]
-    grid = Map.put(grid, position, @floor)
-    path = MapSet.new([position])
     
-    # IO.inspect([position, grid[position]], charlists: :as_lists, label: "guard")
+    {_result, path} = find_route(grid, position)
+    possible_obstacles = MapSet.to_list(path) -- [position]
+    # possible_obstacles = AOC.grid_cells(grid)
+    #   |> Enum.filter(fn cell -> grid[cell] == @floor && cell != position end)
+    #   |> Enum.sort()
+    IO.inspect(possible_obstacles, label: "num obstacles #{Enum.count(possible_obstacles)} (guard at #{position})")
+    # IO.inspect(Enum.count(possible_obstacles), label: "Path length (guard at #{position})")
 
-    Enum.reduce_while(@forever, {position, original_direction, path}, fn _, {pos, dir, set} ->
-      # IO.inspect([pos, grid[pos], dir, set], charlists: :as_lists, label: "iteration(#{iteration})")
-      pos2 = next_pos(grid, pos, dir)
-      {new_pos, new_dir} = turn_right(grid, pos, dir)
+    possible_obstacles
+    # |> Enum.take_random(1)
+    |> Enum.reduce(0, fn blocking_spot, acc ->
+      # IO.puts("Blocking #{blocking_spot}")
+      result = find_route_and_mark_path(grid, position, blocking_spot)
 
-      case {pos2, grid[pos2], new_dir} 
-      # |> IO.inspect(charlists: :as_lists)
-      do
-        {:off_board, _, _} -> {:halt, Enum.count(set)}
-        {_, @floor, _} -> {:cont, {pos2, dir, MapSet.put(set, pos2)}}
-        {_, @obstacle, :off_board} -> {:halt, Enum.count(set)}
-        {_, @obstacle, _} -> {:cont, {new_pos, new_dir, MapSet.put(set, new_pos)}}
-      end
+      case result do
+        {:loop, _path, grid} -> 
+          # AOC.display_grid(grid, "Loop due to block at #{blocking_spot} (#{AOC.grid_x(grid, blocking_spot)}, #{AOC.grid_y(grid, blocking_spot)})")
+          acc + 1
+        {:off_board, _path, grid} -> 
+          # AOC.display_grid(grid, "off_board after block at #{blocking_spot} (#{AOC.grid_x(grid, blocking_spot)}, #{AOC.grid_y(grid, blocking_spot)})")
+          acc
+        _ -> 
+          acc
+      end      
     end)
   end
 end
 
 # Example:
 
-p1data.()
-|> Day06.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: 41)")
+# p1data.()
+# |> Day06.solve1()
+# |> IO.inspect(label: "\n*** Part 1 solution (example: 41)")
 # 4711
 
 p1data.()
 |> Day06.solve2()
-|> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 2 solution (example: 6)")
+# 1562
+
 ```

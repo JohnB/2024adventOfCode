@@ -149,14 +149,15 @@ defmodule AdventOfCode do
     |> Enum.chunk_every(grid.grid_width)
       # |> IO.inspect(label: "Grid chunks")
     |> Enum.map(fn indexes ->
-      indexes
-      |> Enum.map(fn index ->
-        # For a known-printable grid:
-        grid[index]
-        # For a somewhat-printable grid:
-        # (grid[index] >= @max_display) && "." || (@ascii_zero + grid[index])
-      end)
-      |> Enum.join("")
+      line = indexes
+        |> Enum.map(fn index ->
+          # For a known-printable grid:
+          grid[index]
+          # For a somewhat-printable grid:
+          # (grid[index] >= @max_display) && "." || (@ascii_zero + grid[index])
+        end)
+        |> Enum.join("")
+      (String.slice("#{grid_y(grid, List.first(indexes))}   ", 0, 4) <> line)
       |> IO.puts()
     end)
 
