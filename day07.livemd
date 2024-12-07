@@ -49,19 +49,45 @@ end
 ## Solution
 
 ```elixir
-# When inspecting lists of numbers, use "charlists: :as_lists"
 defmodule Day07 do
   def parse(text) do
     text
     |> AOC.as_single_lines()
+    |> Enum.map(fn line ->
+      [result, numbers] = String.split(line, ":", trim: true)
+      numbers = String.split(numbers, ~r/\W/, trim: true)
+        |> Enum.map(&String.to_integer/1)
+      {String.to_integer(result), numbers}
+    end)
+  end
+
+  def can_find_equality?(result, [first]), do: result == first
+  def can_find_equality?(result, [first, second | rest]) do
+    can_find_equality?(result, [(first + second) | rest]) or
+      can_find_equality?(result, [(first * second) | rest])
+  end
+
+  def can_find_3way_equality?(result, [first]), do: result == first
+  def can_find_3way_equality?(result, [first, second | rest]) do
+    can_find_3way_equality?(result, [(first + second) | rest]) or
+      can_find_3way_equality?(result, [(first * second) | rest]) or 
+      can_find_3way_equality?(result, [String.to_integer("#{first}#{second}") | rest])
   end
 
   def solve1(text) do
     parse(text)
+    |> Enum.filter(fn {result, numbers} ->
+      can_find_equality?(result, numbers)
+    end)
+    |> Enum.reduce(0, fn {result, _number}, acc -> acc + result end)
   end
 
   def solve2(text) do
     parse(text)
+    |> Enum.filter(fn {result, numbers} ->
+      can_find_3way_equality?(result, numbers)
+    end)
+    |> Enum.reduce(0, fn {result, _number}, acc -> acc + result end)
   end
 end
 
@@ -69,11 +95,12 @@ end
 
 p1data.()
 |> Day07.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 3749)")
+# 850435817339
 
-# p1data.()
-# |> Day07.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+p1data.()
+|> Day07.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 11387)")
+# 104824810233437
+
 ```
