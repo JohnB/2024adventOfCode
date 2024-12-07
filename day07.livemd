@@ -14,18 +14,19 @@ alias Kino.Input
 # Note: when making the next template, something like this works well:
 #   `cat day04.livemd | sed 's/07/04/' > day04.livemd`
 #
+# When inspecting lists of numbers, use "charlists: :as_lists"
 ```
 
 ## Installation and Data
 
 ```elixir
-input_p1example = Kino.Input.textarea("Example Data")
+input_p1example = Kino.Input.textarea("Example Data", monospace: true)
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-input_p1puzzleInput = Kino.Input.textarea("Puzzle Input")
+input_p1puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
