@@ -5,6 +5,7 @@
 ```elixir
 # Note: when making the next template, something like this works well:
 #   `cat day04.livemd | sed 's/16/04/' > day04.livemd`
+# When inspecting lists of numbers, use "charlists: :as_lists"
 #
 Mix.install([
   # Join the string so a copy of dayN to dayM doesn't destroy it.
@@ -20,13 +21,13 @@ alias Kino.Input
 ## Installation and Data
 
 ```elixir
-input_example = Kino.Input.textarea("Example Data")
+input_example = Kino.Input.textarea("Example Data", monospace: true)
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
-input_puzzleInput = Kino.Input.textarea("Puzzle Input")
+input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
@@ -49,7 +50,6 @@ end
 ## Solution
 
 ```elixir
-# When inspecting lists of numbers, use "charlists: :as_lists"
 defmodule Day16 do
   def parse(text) do
     text
