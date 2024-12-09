@@ -52,12 +52,65 @@ end
 ```elixir
 defmodule Day09 do
   def parse(text) do
-    text
-    |> AOC.as_single_lines()
+    ints = (text <> "0") # 0 trailing 0 may be discarded
+      |> String.split("", trim: true)
+      |> Enum.map(&String.to_integer/1)
+
+    ints
+    |> Enum.chunk_every(2, 2, :discard)
+    |> Enum.with_index()
+    |> Enum.reduce({%{free: []}, 0}, fn {[file_len, free_len], index}, {map, block} ->
+      file_blocks = (file_len == 0) && [] ||
+        Enum.map(block..(block + file_len - 1), & &1)
+      free_blocks = (free_len == 0) && [] || 
+        Enum.map((block + file_len)..(block + file_len + free_len - 1), & &1)
+      # IO.inspect([file_len, free_len, file_blocks, free_blocks, block, map], charlists: :as_lists, label: "#{index}")
+      {
+        map
+        |> Map.put(index, file_blocks)
+        |> Map.put(:free, map[:free] ++ free_blocks),
+        block + file_len + free_len
+      }
+    end)
+    # |> IO.inspect(charlists: :as_lists, label: "parsed")
   end
 
   def solve1(text) do
-    parse(text)
+    {file_map, _} = parse(text)
+    free_list = file_map[:free]
+    file_map = Map.delete(file_map, :free)
+    IO.inspect(file_map, charlists: :as_lists, label: "file_map")
+    IO.inspect(free_list, charlists: :as_lists, label: "free_list")
+
+    {updated_map, _final_free_list} = file_map
+      |> Map.keys()
+      |> Enum.sort()
+      |> Enum.reverse()
+      |> Enum.reduce({file_map, free_list}, 
+        fn file_id, {compacted, [first_free | _rest] = less_free} ->
+          if first_free > List.last(compacted[file_id]) do
+            # already compact
+            {compacted, less_free}
+          else
+            {freeing, filling} = [Enum.reverse(compacted[file_id]), less_free]
+              |> List.zip()
+              |> Enum.filter(fn {file, free} -> file > free end)
+              # |> IO.inspect(charlists: :as_lists, label: "pairs")
+              |> Enum.reduce({[], []}, fn {from, to}, {free, fill} -> 
+                {free ++ [from], fill ++ [to]}
+              end)
+              # |> IO.inspect(charlists: :as_lists, label: "moving")
+  
+            # free_to_move = Enum.slice(less_free, 0..(Enum.count(compacted[file_id])))
+            #   |> Enum.reverse()
+            compacted = Map.put(compacted, file_id, (compacted[file_id] -- freeing) ++ filling)
+            less_free = less_free -- filling
+            {compacted, less_free}          
+          end
+          # |> IO.inspect(charlists: :as_lists, label: "#{file_id}")
+      end)
+
+    Enum.reduce(updated_map, 0, fn {k, v}, acc -> acc + k * Enum.sum(v) end)
   end
 
   def solve2(text) do
@@ -69,7 +122,7 @@ end
 
 data.()
 |> Day09.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+|> IO.inspect(label: "\n*** Part 1 solution (example: 1928)")
 #
 
 # data.()
