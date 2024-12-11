@@ -39,8 +39,12 @@ defmodule AdventOfCode do
   end
 
   def as_grid_of_digits(multiline_text) do
-    as_grid(multiline_text)
-    |> Enum.reduce(%{}, fn {key, value}, acc ->
+    grid = as_grid(multiline_text)
+
+    grid
+    |> grid_cells()
+    |> Enum.reduce(grid, fn key, acc ->
+      value = acc[key]
       Map.put(acc, key, is_integer(value) && value || String.to_integer(value))
     end)
   end

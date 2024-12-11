@@ -77,7 +77,6 @@ defmodule Day09 do
     free_list = Map.values(free_map)
       |> List.flatten()
       |> Enum.sort()
-    file_map = Map.delete(file_map, :free)
 
     {updated_map, _final_free_list} = file_map
       |> Map.keys()
@@ -138,6 +137,7 @@ defmodule Day09 do
 end
 
 # Example:
+# 2333133121414131402
 
 data.()
 |> Day09.solve1()

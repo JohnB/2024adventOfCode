@@ -51,13 +51,42 @@ end
 
 ```elixir
 defmodule Day10 do
+  @start_of_trail 0
+  
   def parse(text) do
     text
-    |> AOC.as_single_lines()
+    |> AOC.as_grid_of_digits()
+  end
+
+  def original_trailheads(grid, next_value \\ @start_of_trail) do
+    AOC.grid_cells(grid)
+      |> Enum.filter(fn cell -> grid[cell] == next_value end)
   end
 
   def solve1(text) do
-    parse(text)
+    grid = parse(text)
+
+    starter_lists = original_trailheads(grid)
+      |> Enum.map(fn zero -> [zero] end)
+    
+    part2 = 1..9
+      |> Enum.reduce(starter_lists, fn next_val, paths ->
+        paths
+        |> Enum.reduce([], fn [cell | _rest] = path, new_paths ->
+          longer_paths = AOC.neighbors4(grid, cell)
+            |> Enum.filter(fn neighbor -> grid[neighbor] == next_val end)
+            |> Enum.map(fn neighbor -> [neighbor | path] end)
+  
+          new_paths ++ longer_paths
+        end)
+      end)
+
+    IO.puts("Part 2 answer: #{Enum.count(part2)}")
+
+    part2
+    |> Enum.map(fn list -> [List.last(list), List.first(list)] end)
+    |> Enum.uniq()
+    |> Enum.count()
   end
 
   def solve2(text) do
@@ -69,11 +98,12 @@ end
 
 data.()
 |> Day10.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 36)")
+# 629
 
 # data.()
 # |> Day10.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+# |> IO.inspect(label: "\n*** Part 2 solution (example: 81)")
+# 1242
+
 ```
