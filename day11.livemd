@@ -11,6 +11,7 @@ Mix.install([
   # Join the string so a copy of dayN to dayM doesn't destroy it.
   {:kino, "~> 0.1" <> "4.2"}
 ])
+require Integer
 
 # Join the string so a copy of dayN to dayM doesn't destroy it.
 IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
@@ -51,17 +52,37 @@ end
 
 ```elixir
 defmodule Day11 do
-  def parse(text) do
-    text
-    |> AOC.as_single_lines()
-  end
-
   def solve1(text) do
-    parse(text)
+    stones = text
+      |> String.split(~r/\W+/)
+      |> Enum.map(&String.to_integer/1)
+
+    1..75
+    |> Enum.reduce(stones, fn blink, stoned ->
+      result = stoned
+        |> Enum.map(fn stone ->
+          stone_str = "#{stone}"
+          stone_len = String.length(stone_str)
+          case {stone, Integer.is_even(stone_len)} do
+            {0, _} -> 1
+            {_, true} -> 
+              stone_str
+              |> String.split_at(floor(stone_len / 2))
+              |> Tuple.to_list()
+              |> Enum.map(&String.to_integer/1)
+            {x, _} -> 2024 * x
+          end
+        end)
+        |> List.flatten()
+        
+      IO.inspect([Enum.count(result), Time.utc_now()], label: "#{blink}")
+      result
+    end)
+    |> Enum.count()
   end
 
-  def solve2(text) do
-    parse(text)
+  def solve2(_text) do
+    # parse(text)
   end
 end
 
@@ -69,8 +90,16 @@ end
 
 data.()
 |> Day11.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 55312 or 22)")
+# Running each original stone separately:
+# 28591 
+# 78
+# 0
+# 3159881
+# 4254
+# 524155
+# 598
+# 1
 
 # data.()
 # |> Day11.solve2()
