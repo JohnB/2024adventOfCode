@@ -51,13 +51,47 @@ end
 
 ```elixir
 defmodule Day13 do
+  @parser ~r/Button A: X\+(\d+), Y\+(\d+)\nButton B: X\+(\d+), Y\+(\d+)\nPrize: X=(\d+), Y=(\d+)/
+  @max_button_presses 100
+  @a_cost 3
+  @b_cost 1
+  
   def parse(text) do
     text
-    |> AOC.as_single_lines()
+    |> AOC.as_doublespaced_paragraphs()
+    |> Enum.reduce([], fn paragraph, acc ->
+      [ax, ay, bx, by, px, py] = Regex.scan(@parser, paragraph, multiline: true)
+        |> List.flatten()
+        |> Enum.slice(1..-1//1)
+        |> Enum.map(&String.to_integer/1)
+
+      acc ++ [%{ax: ax, ay: ay, bx: bx, by: by, px: px, py: py}]
+    end)
   end
 
   def solve1(text) do
-    parse(text)
+    machines = parse(text)
+
+    machines
+    |> Enum.reduce(0, fn %{ax: ax, ay: ay, bx: bx, by: by, px: px, py: py} = machine, acc ->
+      IO.inspect(machine, label: "machine")
+      [axp_max, ayp_max, bxp_max, byp_max] = [px / ax, py / ay, px / bx, py / by]
+        |> Enum.map(&ceil/1)
+        |> AOC.inspect(label: "bounds")
+      
+      list = for a_presses <- 0..Enum.min([@max_button_presses, axp_max, ayp_max]), 
+        b_presses <- 0..Enum.min([@max_button_presses, bxp_max, byp_max]),
+        ((ax * a_presses + bx * b_presses == px) && (ay * a_presses + by * b_presses == py)), 
+        do: (@a_cost * a_presses + @b_cost * b_presses)
+      |> AOC.inspect(label: "???")
+
+      if list == [] do
+        acc
+      else
+        acc + (Enum.min(list) || 0)
+      end
+      |> AOC.inspect(label: "acc")
+    end)
   end
 
   def solve2(text) do
@@ -69,7 +103,7 @@ end
 
 data.()
 |> Day13.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+|> IO.inspect(label: "\n*** Part 1 solution (example: 480)")
 #
 
 # data.()

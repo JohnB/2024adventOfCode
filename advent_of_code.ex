@@ -10,6 +10,10 @@ defmodule AdventOfCode do
 
   alias Kino
 
+  def inspect(thing, keyword_list \\ []) do
+    IO.inspect(thing, keyword_list ++ [charlists: :as_lists])
+  end
+
   # Grid-based helpers
 
   @doc """

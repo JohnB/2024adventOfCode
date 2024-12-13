@@ -52,38 +52,108 @@ end
 
 ```elixir
 defmodule Day11 do
+  @max_blinks 6
+
+  # Do one more memo'd level than we should need
+  def memoize(memo, _stone, blink) when blink <= -2, do: memo
+      # |> IO.inspect(label: "memo 5", charlists: :as_lists)
+  def memoize(memo, stone, blink) do
+    # IO.inspect([blink, stone, memo[stone]], label: "Memoizing", charlists: :as_lists)
+    if is_nil(memo[stone]) do
+      # IO.puts("cache MISS #{stone}")
+      stone_str = "#{stone}"
+      stone_len = String.length(stone_str)
+      case {stone, Integer.is_even(stone_len)} do
+        {0, _} -> 
+          put_in(memo, [stone], [1])
+          |> memoize(1, blink - 1)
+        {_, true} -> 
+          stones = stone_str
+            |> String.split_at(floor(stone_len / 2))
+            |> Tuple.to_list()
+            |> Enum.map(&String.to_integer/1)
+            # |> IO.inspect(label: "stones for #{stone}", charlists: :as_lists)
+          acc1 = put_in(memo, [stone], stones)
+          stones
+            |> Enum.reduce(acc1, fn stone1, acc2 -> memoize(acc2, stone1, blink - 1) end)
+        {x, false} -> 
+          put_in(memo, [stone], [2024 * x])
+          |> memoize(2024 * x, blink - 1)
+      end
+    else
+      # IO.inspect(memo[stone], label: "cache HIT #{stone}")
+      memo[stone]
+      |> Enum.reduce(memo, fn stone1, acc2 -> memoize(acc2, stone1, blink - 1) end)
+    end
+    # |> IO.inspect(label: "Memoize after #{blink}", charlists: :as_lists)
+  end
+  
+  def count_stones(_memo, counts, stone, blink) when blink <= 0 do
+    1 #(counts[stone] || 1) |> IO.inspect(label: "count #{stone}!", charlists: :as_lists)
+  end
+  def count_stones(memo, counts, stone, blink) do
+    # IO.inspect([blink, stone, memo[stone]], label: "counts32", charlists: :as_lists)
+    Enum.map(memo[stone], fn new_stone -> 
+      count_stones(memo, counts, new_stone, blink - 1)
+    end)
+    # |> IO.inspect(label: "c38(#{blink})", charlists: :as_lists)
+    |> Enum.reject(fn x -> is_nil(x) end)
+    |> Enum.sum()
+  end
+  
   def solve1(text) do
     stones = text
+      |> IO.inspect(label: "STARTING TEXT")
       |> String.split(~r/\W+/)
       |> Enum.map(&String.to_integer/1)
 
-    1..75
-    |> Enum.reduce(stones, fn blink, stoned ->
-      result = stoned
-        |> Enum.map(fn stone ->
-          stone_str = "#{stone}"
-          stone_len = String.length(stone_str)
-          case {stone, Integer.is_even(stone_len)} do
-            {0, _} -> 1
-            {_, true} -> 
-              stone_str
-              |> String.split_at(floor(stone_len / 2))
-              |> Tuple.to_list()
-              |> Enum.map(&String.to_integer/1)
-            {x, _} -> 2024 * x
-          end
-        end)
-        |> List.flatten()
-        
-      IO.inspect([Enum.count(result), Time.utc_now()], label: "#{blink}")
-      result
+    # 1..25
+    [75]
+    |> Enum.each(fn blink ->
+      memo = stones
+      |> Enum.reduce(%{}, fn stone, acc ->
+        memoize(acc, stone, blink)
+      end)
+      # |> IO.inspect(label: "memo for #{blink} blinks", charlists: :as_lists)
+
+      counts = memo
+      |> Enum.reduce(%{}, fn {k, v}, acc ->
+        put_in(acc, [k], Enum.count(v))
+      end)
+      # |> IO.inspect(label: "counts for #{@blink} blinks")
+      # IO.puts("#{Enum.count(counts)} counts for #{blink} blinks")
+
+      stones
+      |> Enum.map(fn stone ->
+        count_stones(memo, counts, stone, blink)
+      end)
+      # |> IO.inspect(label: "leaf counts for #{blink} blinks", charlists: :as_lists)
+      |> Enum.sum()
+      |> IO.inspect(label: "SUM for #{blink} blinks", charlists: :as_lists)
     end)
-    |> Enum.count()
+
+    # memo = stones
+    #   |> Enum.reduce(%{}, fn stone, acc ->
+    #     memoize(acc, stone, @max_blinks)
+    #   end)
+    #   # |> IO.inspect(label: "memo", charlists: :as_lists)
+    # # IO.puts("memo size: #{Enum.count(memo)}")
+    # counts = memo
+    #   |> Enum.reduce(%{}, fn {k, v}, acc ->
+    #     put_in(acc, [k], Enum.count(v))
+    #   end)
+    #   # |> IO.inspect(label: "counts for #{@max_blinks} blinks")
+    # IO.puts("#{Enum.count(counts)} counts for #{@max_blinks} blinks")
+
+    # stones
+    # |> Enum.map(fn stone ->
+    #   count_stones(memo, counts, stone, @max_blinks)
+    # end)
+    # |> IO.inspect(label: "counts58", charlists: :as_lists)
+    # |> Enum.reject(fn x -> is_nil(x) end)
+    # |> Enum.sum()
   end
 
-  def solve2(_text) do
-    # parse(text)
-  end
 end
 
 # Example:
@@ -91,18 +161,8 @@ end
 data.()
 |> Day11.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 55312 or 22)")
-# Running each original stone separately:
-# 28591 
-# 78
-# 0
-# 3159881
-# 4254
-# 524155
-# 598
-# 1
+# Part1: 220722
+# Part2: 
 
-# data.()
-# |> Day11.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+
 ```
