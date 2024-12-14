@@ -64,11 +64,15 @@ defmodule AdventOfCode do
       index + grid.grid_width,
     ]
     |> Enum.map(fn neighbor ->
-      # convert off either side to a negative index to be off-board but unique
-      if div(neighbor, grid.grid_width) == div(index, grid.grid_width) ||
-        rem(neighbor, grid.grid_width) == rem(index, grid.grid_width) do
+    cond do
+      neighbor < 0 ->
+        -(10_000 + neighbor)
+      neighbor > grid.last_cell ->
+        -(10_000 + neighbor)
+      div(neighbor, grid.grid_width) == div(index, grid.grid_width) ||
+        rem(neighbor, grid.grid_width) == rem(index, grid.grid_width) ->
         neighbor
-      else
+      true ->
         -(10_000 + neighbor)
       end
     end)
