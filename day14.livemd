@@ -51,13 +51,52 @@ end
 
 ```elixir
 defmodule Day14 do
+  @parser ~r/p=(\d+),(\d+) v=(-?\d+),(-?\d+)/
+    
   def parse(text) do
     text
     |> AOC.as_single_lines()
+    |> Enum.map(fn line ->
+      [_px, _py, _vx, _vy] = Regex.scan(@parser, line) 
+        |> List.flatten()
+        |> Enum.slice(1..-1//1)
+        |> Enum.map(&String.to_integer/1)
+    end)
   end
 
   def solve1(text) do
-    parse(text)
+    seconds = 100
+    robots = parse(text)
+    [space_x, space_y] = (Enum.count(robots) > 50) && [101, 103] || [11, 7]
+
+    final_positions = robots
+      |> Enum.map(fn [px, py, vx, vy] -> 
+        new_x = rem(rem(px + seconds * vx, space_x) + space_x, space_x)
+        new_y = rem(rem(py + seconds * vy, space_y) + space_y, space_y)
+        
+        [new_x, new_y]
+      end)
+      |> Enum.sort()
+      |> AOC.inspect()
+
+    final_positions
+    |> Enum.reduce([0,0,0,0], fn [x, y], [q1,q2,q3,q4] ->
+      IO.inspect([space_x, space_y, x, y, [q1,q2,q3,q4], 
+        [floor(space_x / 2), floor(space_y / 2), ceil(space_x / 2), ceil(space_y / 2)] ])
+      cond do
+        x < floor(space_x / 2) && y < floor(space_y / 2) ->
+          [q1+1,q2,q3,q4]
+        x >= ceil(space_x / 2) && y < floor(space_y / 2) ->
+          [q1,q2+1,q3,q4]
+        x < floor(space_x / 2) && y >= ceil(space_y / 2) ->
+          [q1,q2,q3+1,q4]
+        x >= ceil(space_x / 2) && y >= ceil(space_y / 2) ->
+          [q1,q2,q3,q4+1]
+        true ->
+          [q1,q2,q3,q4]
+      end
+    end)
+    |> Enum.reduce(1, fn q, acc -> q * acc end)
   end
 
   def solve2(text) do
