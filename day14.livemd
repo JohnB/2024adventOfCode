@@ -77,12 +77,12 @@ defmodule Day14 do
         [new_x, new_y]
       end)
       |> Enum.sort()
-      |> AOC.inspect()
+      # |> AOC.inspect()
 
     final_positions
     |> Enum.reduce([0,0,0,0], fn [x, y], [q1,q2,q3,q4] ->
-      IO.inspect([space_x, space_y, x, y, [q1,q2,q3,q4], 
-        [floor(space_x / 2), floor(space_y / 2), ceil(space_x / 2), ceil(space_y / 2)] ])
+      # IO.inspect([space_x, space_y, x, y, [q1,q2,q3,q4], 
+      #   [floor(space_x / 2), floor(space_y / 2), ceil(space_x / 2), ceil(space_y / 2)] ])
       cond do
         x < floor(space_x / 2) && y < floor(space_y / 2) ->
           [q1+1,q2,q3,q4]
@@ -99,8 +99,63 @@ defmodule Day14 do
     |> Enum.reduce(1, fn q, acc -> q * acc end)
   end
 
+  def format(robots, space_x, space_y, title) do
+    positions = robots
+      |> Enum.map(fn [x, y, _, _] -> [x,y] end)
+
+    space = for y <- 0..(space_y - 1) do
+        for x <- 0..(space_x - 1) do
+          ([x,y] in positions) && "#" || "."
+        end
+        |> Enum.join()
+      end
+      |> Enum.join("\n")
+    
+    "=== #{title} ===\n" <> space
+  end
+
+  def display(file, robots, space_x, space_y, title) do
+    IO.puts(file, format(robots, space_x, space_y, title))
+    robots
+  end
+
+  def step(robots, space_x, space_y) do
+    robots
+    |> Enum.map(fn [px, py, vx, vy] ->
+      [
+        rem(rem(px + vx, space_x) + space_x, space_x), 
+        rem(rem(py + vy, space_y) + space_y, space_y), 
+        vx, vy
+      ]
+    end)
+  end
+
   def solve2(text) do
-    parse(text)
+
+    
+    robots = parse(text)
+    [space_x, space_y] = (Enum.count(robots) > 50) && [101, 103] || [11, 7]
+    # IO.puts(format(robots, space_x, space_y, "START"))
+    
+    # {:ok, file} = File.open("6587.text", [:write])
+    # display(file, robots, space_x, space_y, "START")
+    IO.puts("asdfjhsdfjhsdf")
+    1..6587
+    |> Enum.reduce(robots, fn second, acc ->
+      robots = step(acc, space_x, space_y)
+      screen = format(robots, space_x, space_y, "#{second}")
+      if screen =~ "##########" do
+        IO.puts(screen)
+      end
+      # if second in 0..100 do
+        # display(file, robots, space_x, space_y, "#{second}")
+      # end
+      robots
+    end)
+    # File.close(file)
+    IO.puts("closed file")
+
+    5
   end
 end
 
@@ -108,11 +163,11 @@ end
 
 data.()
 |> Day14.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 12)")
+# 211692000
 
-# data.()
-# |> Day14.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+data.()
+|> Day14.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: )")
 #
 ```
