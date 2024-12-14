@@ -57,28 +57,26 @@ defmodule Day12 do
   end
 
   def find_contiguous_region(_grid, [] = _region_cells, result), do: result
-  def find_contiguous_region(grid, [first | rest] = region_cells, result) do
-    # AOC.inspect([region_cells, result])
+  def find_contiguous_region(grid, [first | _rest] = _region_cells, result) do
+    # AOC.inspect([first, result], label: "find_contiguous_region")
     result = [first | result]
-    result_neighbors = result
-      |> List.flatten()
-      # |> AOC.inspect(label: "result mapped into n4")
-      |> Enum.map(fn x -> AOC.neighbors4(grid, x) end)
-      |> List.flatten()
+    first_neighbors = AOC.neighbors4(grid, first)
       |> Enum.filter(fn x -> grid[x] == grid[first] end)
-      |> Enum.uniq()
-    if result_neighbors == [] do
+      |> Enum.reject(fn x -> x in result end)
+    if first_neighbors == [] do
       result
     else
-      find_contiguous_region(grid, region_cells -- result -- result_neighbors, 
-        Enum.uniq(result ++ result_neighbors)
-      )
+      first_neighbors
+      |> Enum.reduce(result, fn neighbor, acc ->
+        find_contiguous_region(grid, [neighbor] ++ result, acc)
+      end)
     end
     |> Enum.uniq()
     # |> AOC.inspect(label: "contiguous_region")
   end
   
   def find_separate_regions(grid, region_cells) do
+    # AOC.inspect([grid, region_cells], label: "find_separate_regions")
     1..Enum.count(region_cells)
     |> Enum.reduce_while({[], region_cells}, fn _iteration, {regions, remainder} ->
       contiguous = find_contiguous_region(grid, remainder, [])
@@ -88,8 +86,9 @@ defmodule Day12 do
       if remainder == [] do
         {:halt, regions ++ [contiguous]} #|> AOC.inspect(label: "65")
       else
-        # AOC.inspect(regions, label: "67")
-        {:cont, {regions ++ [contiguous], find_separate_regions(grid, remainder)}}
+        # AOC.inspect([regions, remainder], label: "67")
+        {:cont, {regions ++ [contiguous], remainder}}
+        # {:cont, {regions ++ [contiguous], find_separate_regions(grid, remainder)}}
       end
     end)
   end
@@ -101,7 +100,7 @@ defmodule Day12 do
       region_letter = grid[cell]
       Map.put(acc, region_letter, (acc[region_letter] || []) ++ [cell])
     end)
-    |> AOC.inspect()
+    # |> AOC.inspect()
 
     numbered_regions = naive_regions
       |> Enum.reduce(%{0 => []}, fn {_region_name, region_cells}, acc ->
@@ -116,20 +115,28 @@ defmodule Day12 do
       |> Map.delete(0)
 
     numbered_regions
-      |> Enum.map(fn {k, v} -> AOC.inspect([k, v], label: "#{grid[List.first(v)]} (#{Enum.count(v)})") end)
+      |> Enum.map(fn {k, v} -> 
+        AOC.inspect([k, v], label: "#{grid[List.first(v)]} (#{Enum.count(v)})") 
+      end)
 
-    5
+    numbered_regions
+    |> Enum.map(fn {region_id, region} ->
+      area = Enum.count(region)
+      letter = grid[List.first(region)]
+      perimeter = Enum.map(region, fn cell ->
+          AOC.neighbors4_including_offgrid(grid, cell)
+          |> Enum.reject(fn neighbor -> grid[neighbor] == letter end)
+        end)
+        |> List.flatten()
+        |> Enum.sort()
+        # |> AOC.inspect(label: "perimeter cells")
+        # |> Enum.uniq()
+        |> Enum.count()
+      AOC.inspect([letter, region_id, area, perimeter])
+      perimeter * area
+    end)
+    |> Enum.sum()
     
-    # _regions = grid
-    #   |> AOC.grid_cells()
-    #   # 0..5
-    #     |> Enum.reduce(%{0 => MapSet.new()}, fn cell, map ->
-    #     if in_existing_region?(grid, map, cell) do
-    #       map 
-    #     else
-    #       find_entire_region(grid, map, cell, 0)
-    #     end
-    #   end)
   end
 
   def solve2(text) do
@@ -142,7 +149,7 @@ end
 data.()
 |> Day12.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 1930)")
-#
+# 1452678
 
 # data.()
 # |> Day12.solve2()

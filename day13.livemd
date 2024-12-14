@@ -50,11 +50,36 @@ end
 ## Solution
 
 ```elixir
+# === Part 1 Example:
+# Button A: X+94, Y+34
+# Button B: X+22, Y+67
+# Prize: X=8400, Y=5400
+
+# Button A: X+26, Y+66
+# Button B: X+67, Y+21
+# Prize: X=12748, Y=12176
+
+# Button A: X+17, Y+86
+# Button B: X+84, Y+37
+# Prize: X=7870, Y=6450
+
+# Button A: X+69, Y+23
+# Button B: X+27, Y+71
+# Prize: X=18641, Y=10279
+
+# === Part 2 Example:
+# Add 10000000000000 to each of the prize values
+# thus px and py are close to a 1:1 ratio 
+# so we should be able to calculate the ratio
+# of the two magnitudes of the A and B vectors
+# and approximate the prize values
+
 defmodule Day13 do
   @parser ~r/Button A: X\+(\d+), Y\+(\d+)\nButton B: X\+(\d+), Y\+(\d+)\nPrize: X=(\d+), Y=(\d+)/
   @max_button_presses 100
   @a_cost 3
   @b_cost 1
+  @part2offset 10000000000000
   
   def parse(text) do
     text
@@ -73,41 +98,60 @@ defmodule Day13 do
     machines = parse(text)
 
     machines
-    |> Enum.reduce(0, fn %{ax: ax, ay: ay, bx: bx, by: by, px: px, py: py} = machine, acc ->
-      IO.inspect(machine, label: "machine")
+    |> Enum.reduce(0, fn %{ax: ax, ay: ay, bx: bx, by: by, px: px, py: py} = _machine, acc ->
+      # IO.inspect(machine, label: "machine")
       [axp_max, ayp_max, bxp_max, byp_max] = [px / ax, py / ay, px / bx, py / by]
         |> Enum.map(&ceil/1)
-        |> AOC.inspect(label: "bounds")
       
       list = for a_presses <- 0..Enum.min([@max_button_presses, axp_max, ayp_max]), 
         b_presses <- 0..Enum.min([@max_button_presses, bxp_max, byp_max]),
         ((ax * a_presses + bx * b_presses == px) && (ay * a_presses + by * b_presses == py)), 
         do: (@a_cost * a_presses + @b_cost * b_presses)
-      |> AOC.inspect(label: "???")
 
       if list == [] do
         acc
       else
         acc + (Enum.min(list) || 0)
       end
-      |> AOC.inspect(label: "acc")
     end)
   end
 
   def solve2(text) do
-    parse(text)
+    machines = parse(text)
+      |> Enum.map(fn machine ->
+        machine
+        |> Map.update!(:px, &(&1 + @part2offset))
+        |> Map.update!(:py, &(&1 + @part2offset))
+      end)
+
+    machines
+    |> Enum.reduce(0, fn %{ax: ax, ay: ay, bx: bx, by: by, px: px, py: py} = _machine, acc ->
+      # IO.inspect(machine, label: "machine")
+
+      # From:
+      # https://old.reddit.com/r/adventofcode/comments/1hd7irq/2024_day_13_an_explanation_of_the_mathematics/
+      # I was on the right track but re-deriving the equation was unlikely
+      # (although the px/py slope approached 1:1 which may have helped)
+      a_presses = floor((px * by - py * bx) / (ax * by - ay * bx))
+      b_presses = floor((ax * py - ay * px) / (ax * by - ay * bx))
+      if a_presses * ax + b_presses * bx == px &&
+        a_presses * ay + b_presses * by == py do
+        acc + (@a_cost * a_presses + @b_cost * b_presses)
+      else
+        acc
+      end
+    end)
   end
 end
-
-# Example:
 
 data.()
 |> Day13.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 480)")
-#
+# 29201
 
-# data.()
-# |> Day13.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+data.()
+|> Day13.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 875318608908)")
+# 104140871044942
+
 ```
