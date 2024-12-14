@@ -56,6 +56,24 @@ defmodule AdventOfCode do
   # We only want 4 neighbors, not 8
   # Order: [up, left, right, down]
   # NOTE: DOES NOT HANDLE INFINITE GRID
+  def neighbors4_including_offgrid(grid, index) do
+    [
+      index - grid.grid_width,
+      index - 1,
+      index + 1,
+      index + grid.grid_width,
+    ]
+    |> Enum.map(fn neighbor ->
+      # convert off either side to a negative index to be off-board but unique
+      if div(neighbor, grid.grid_width) == div(index, grid.grid_width) ||
+        rem(neighbor, grid.grid_width) == rem(index, grid.grid_width) do
+        neighbor
+      else
+        -(10_000 + neighbor)
+      end
+    end)
+  end
+
   def neighbors4(grid, index) do
     [
       index - grid.grid_width,
@@ -63,7 +81,7 @@ defmodule AdventOfCode do
       index + 1,
       index + grid.grid_width,
     ]
-    |> Enum.filter(fn neighbor -> grid[neighbor] end) #off-board
+    |> Enum.filter(fn neighbor -> grid[neighbor] end) # nils are off-board
     |> Enum.filter(fn neighbor ->
       # must be on the same row or column to ensure we don't go side-to-side
       div(neighbor, grid.grid_width) == div(index, grid.grid_width) ||
