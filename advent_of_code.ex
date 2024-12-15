@@ -37,6 +37,7 @@ defmodule AdventOfCode do
       grid_width: grid_width,
       grid_height: grid_height,
       infinite: infinite,
+      max_dimension: max(grid_width, grid_height),
       # NOTE: last_cell is meaningless for a separately-specified width
       last_cell: grid_height * grid_width - 1
     })

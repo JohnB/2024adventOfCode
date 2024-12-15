@@ -51,13 +51,87 @@ end
 
 ```elixir
 defmodule Day15 do
+  @robot "@"
+  @wall "#"
+  @box "O"
+  @floor "."
+  
   def parse(text) do
-    text
-    |> AOC.as_single_lines()
+    [array, moves] = text
+      |> AOC.as_doublespaced_paragraphs()
+
+    [
+      AOC.as_grid(array), 
+      moves
+      |> String.replace("\n", "", multiline: true)
+      |> String.split("", trim: true)
+    ]
+  end
+
+  def delta(grid, move) do
+    case move do
+      "^" -> -grid.grid_height
+      ">" -> 1
+      "v" -> grid.grid_height
+      "<" -> -1
+    end
+  end
+
+  def find_next_position(grid, position, move) do
+    position + delta(grid, move)
+  end
+
+  def attempt_to_push_box(grid, position, move) do
+    non_box_position = Enum.find((position + delta(grid, move))..(position + grid.max_dimension * delta(grid, move))//delta(grid, move), 
+      fn farther_position ->
+        # AOC.inspect(farther_position)
+        grid[farther_position] != @box  
+      end)
+      # |> AOC.inspect(label: "non_box_position")
+
+    if grid[non_box_position] == @wall do
+      {grid, position}
+    else
+      # if empty floor, swap with original box and return {new-grid, next_cell}
+      next_cell = position + delta(grid, move)
+      {
+        grid
+        |> put_in([non_box_position], @box)
+        |> put_in([position], @floor)
+        |> put_in([next_cell], @robot),
+        next_cell
+      }
+    end
   end
 
   def solve1(text) do
-    parse(text)
+    [grid, moves] = parse(text)
+    # AOC.display_grid(grid, "START")
+    robot = AOC.grid_cells(grid)
+      |> Enum.find(fn cell -> grid[cell] == @robot end)
+    # grid = put_in(grid, [robot], @floor) # clear the guard spot
+    
+    {final_grid, _final_position} = moves
+      |> Enum.reduce({grid, robot}, fn move, {acc, position} ->
+        next_cell = find_next_position(acc, position, move)
+        {acc, position} = case acc[next_cell] do
+          @wall -> {acc, position}
+          @box -> attempt_to_push_box(acc, position, move)
+          @floor -> {
+            acc
+            |> put_in([position], @floor)
+            |> put_in([next_cell], @robot),
+            next_cell
+          }
+        end
+        # AOC.display_grid(acc, move)
+        {acc, position}    
+      end)
+
+    AOC.grid_cells(final_grid)
+    |> Enum.filter(fn cell -> final_grid[cell] == @box end)
+    |> Enum.map(fn cell -> 100 * AOC.grid_y(final_grid, cell) + AOC.grid_x(final_grid, cell) end)
+    |> Enum.sum()
   end
 
   def solve2(text) do
@@ -66,14 +140,24 @@ defmodule Day15 do
 end
 
 # Example:
+# ########
+# #..O.O.#
+# ##@.O..#
+# #...O..#
+# #.#.O..#
+# #...O..#
+# #......#
+# ########
 
+# <^^>>>vv<v>>v<<
+  
 data.()
 |> Day15.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 2028 or 10092)")
+# 1430439
 
 # data.()
 # |> Day15.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+# |> IO.inspect(label: "\n*** Part 2 solution (example: 9021)")
 #
 ```
