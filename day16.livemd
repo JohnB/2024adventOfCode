@@ -51,13 +51,69 @@ end
 
 ```elixir
 defmodule Day16 do
+  @wall "#"
   def parse(text) do
     text
-    |> AOC.as_single_lines()
+    |> AOC.as_grid()
   end
 
+  def find_spot(grid, value) do
+    AOC.grid_cells(grid)
+    |> Enum.find(fn cell -> grid[cell] == value end)
+  end
+
+  def score_path(path) do
+    [start, next] = Enum.slice(path, 0..1)
+    start_score = (next == start + 1) && 0 || 1000
+    finish_score = 0 # we don't care what direction they face
+    path_score = Enum.count(path) - 1
+    # AOC.inspect([start_score, finish_score, path_score])
+
+    path
+    |> Enum.chunk_every(3, 1, :discard)
+    |> Enum.reduce(start_score + finish_score + path_score, fn [a,b,c], acc ->
+      acc + (((a + c) / 2 == b) && 0 || 1000)
+    end)
+  end
+
+  def find_paths(_grid, finish, finish, path) do
+    path 
+    # |> AOC.inspect(label: "complete!")
+    |> score_path()
+    # |> AOC.inspect(label: "score")
+  end
+  def find_paths(grid, start, finish, path) do
+    # AOC.inspect([start, finish, path])
+    n4 = AOC.neighbors4(grid, start)
+      |> Enum.reject(fn cell -> cell in path end)
+      |> Enum.reject(fn cell -> grid[cell] == @wall end)
+      # |> AOC.inspect(label: "n4")
+
+    if n4 == [] do
+      :blocked
+    else
+      n4
+      |> Enum.map(fn cell -> 
+        find_paths(grid, cell, finish, path ++ [cell]) 
+      end)
+      |> Enum.reject(fn list -> list in [nil, [], :blocked] end)
+    end
+  end
+
+  def flatter([first | _rest] = path) when is_integer(first), do: path
+  def flatter([[path]]), do: flatter(path)
+
   def solve1(text) do
-    parse(text)
+    grid = parse(text)
+    start = find_spot(grid, "S")
+    finish = find_spot(grid, "E")
+    AOC.inspect([start, finish], label: "start & finish")
+    
+    find_paths(grid, start, finish, [start])
+    |> List.flatten()
+    |> Enum.sort()
+    |> AOC.inspect(label: "scores")
+    |> List.first()
   end
 
   def solve2(text) do
@@ -69,7 +125,7 @@ end
 
 data.()
 |> Day16.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+|> IO.inspect(label: "\n*** Part 1 solution (example: 11048)")
 #
 
 # data.()
