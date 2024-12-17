@@ -11,6 +11,8 @@ Mix.install([
   # Join the string so a copy of dayN to dayM doesn't destroy it.
   {:kino, "~> 0.1" <> "4.2"}
 ])
+import Integer
+import Bitwise
 
 # Join the string so a copy of dayN to dayM doesn't destroy it.
 IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
@@ -21,7 +23,7 @@ alias Kino.Input
 ## Installation and Data
 
 ```elixir
-input_example = Kino.Input.textarea("Example Data"), monospace: true
+input_example = Kino.Input.textarea("Example Data", monospace: true)
 ```
 
 <!-- livebook:{"reevaluate_automatically":true} -->
@@ -51,17 +53,65 @@ end
 
 ```elixir
 defmodule Day17 do
-  def parse(text) do
-    text
-    |> AOC.as_single_lines()
+  @parser ~r/Register A: (\d+)\nRegister B: (\d+)\nRegister C: (\d+)\n\nProgram: (.*)/
+    
+  def parse_input(text) do
+    [[_, a, b, c, program]] = Regex.scan(@parser, text, multiline: true)
+
+    [a, b, c] = Enum.map([a, b, c], &String.to_integer/1)
+    program = String.split(program, ",") |> Enum.map(&String.to_integer/1)
+    
+    [a, b, c, program]
+  end
+
+  def translate_operand(operand, aa, bb, cc) do
+    case operand do
+      0 -> operand
+      1 -> operand
+      2 -> operand
+      3 -> operand
+      4 -> aa
+      5 -> bb
+      6 -> cc
+      7 -> :halt
+    end
   end
 
   def solve1(text) do
-    parse(text)
+    [a, b, c, program] = parse_input(text)
+        |> AOC.inspect(label: "START")
+    program_length = Enum.count(program)
+
+    1..100_000
+    |> Enum.reduce_while([a, b, c, [], 0], fn iteration, [aa, bb, cc, oout, ip] ->
+      if ip >= program_length do
+        {:halt, Enum.join(oout, ",")}
+      else
+        [opcode, operand] = Enum.slice(program, ip..(ip+1))
+        |> AOC.inspect()
+        combo = translate_operand(operand, aa, bb, cc)
+        case opcode do
+          0 -> {:cont, [floor(aa / (Integer.pow(2, combo))), bb, cc, oout, ip + 2]}
+          1 -> {:cont, [aa, bxor(bb, operand), cc, oout, ip + 2]}
+          2 -> {:cont, [aa, rem(combo, 8), cc, oout, ip + 2]}
+          3 -> if aa == 0 do
+              {:cont, [aa, bb, cc, oout, ip + 2]}
+            else
+              {:cont, [aa, bb, cc, oout, operand]}
+            end
+          4 -> {:cont, [aa, bxor(bb, cc), cc, oout, ip + 2]}
+          5 -> {:cont, [aa, bb, cc, oout ++ [rem(combo, 8)], ip + 2]}
+          6 -> {:cont, [aa, floor(aa / (Integer.pow(2, combo))), cc, oout, ip + 2]}
+          7 -> {:cont, [aa, bb, floor(aa / (Integer.pow(2, combo))), oout, ip + 2]}
+        end
+        |> AOC.inspect(label: "#{iteration}")
+      end
+    end)
+    
   end
 
   def solve2(text) do
-    parse(text)
+    parse_input(text)
   end
 end
 
@@ -69,7 +119,7 @@ end
 
 data.()
 |> Day17.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+|> IO.inspect(label: "\n*** Part 1 solution (example: '4,6,3,5,6,3,5,2,1,0')")
 #
 
 # data.()
