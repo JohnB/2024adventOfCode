@@ -86,7 +86,6 @@ defmodule Day17 do
         {:halt, oout}
       else
         [opcode, operand] = Enum.slice(program, ip..(ip+1))
-        # |> AOC.inspect()
         combo = translate_operand(operand, aa, bb, cc)
         case opcode do
           0 -> {:cont, [floor(aa / (Integer.pow(2, combo))), bb, cc, oout, ip + 2]}
@@ -102,15 +101,12 @@ defmodule Day17 do
           6 -> {:cont, [aa, floor(aa / (Integer.pow(2, combo))), cc, oout, ip + 2]}
           7 -> {:cont, [aa, bb, floor(aa / (Integer.pow(2, combo))), oout, ip + 2]}
         end
-        # |> AOC.inspect(label: "#{iteration}")
       end
     end)
   end
 
   def solve1(text) do
     [a, b, c, program] = parse_input(text)
-        # |> AOC.inspect(label: "START")
-    # AOC.inspect([a, Integer.to_string(a, 8), Integer.to_string(a, 8) |> String.reverse()])
     run_program(a, b, c, program)
   end
 # Example:
@@ -127,18 +123,20 @@ defmodule Day17 do
     pstring = Enum.join(program)
 
     Enum.reduce(program, [0], fn _p, aaas ->
-      Enum.reduce(aaas, [], fn a, next_aaas ->
+      next_set = Enum.reduce(aaas, [], fn a, next_aaas ->
         Enum.reduce(0..7, next_aaas, fn bits, acc ->
           maybe_a = a * 8 + bits
           test = run_program(maybe_a, b, c, program) |> Enum.join()
           if String.ends_with?(pstring, test) do
-            AOC.inspect(test, label: "A=#{Integer.to_string(maybe_a,2)} (#{maybe_a})")
+            AOC.inspect(test, label: "A=#{maybe_a}")
             acc ++ [maybe_a]
           else
             acc
           end
         end)
       end)
+
+      next_set -- aaas
     end)
   end
 end
@@ -152,10 +150,6 @@ data.()
 |> Day17.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (quine)")
 IO.puts("Part 2 is aiming for output of '2,4,1,7,7,5,0,3,4,4,1,7,5,5,3,0'")
-# 2,1,0,1,7,2,5,0,3
-
-"""
-
-"""
+# 267265166222235 is the smaller of the 2 A values that re-produce the program
 
 ```

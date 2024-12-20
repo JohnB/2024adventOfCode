@@ -24,20 +24,14 @@ alias Kino.Input
 input_example = Kino.Input.textarea("Example Data", monospace: true)
 ```
 
-<!-- livebook:{"reevaluate_automatically":true} -->
-
 ```elixir
 input_puzzleInput = Kino.Input.textarea("Puzzle Input", monospace: true)
 ```
-
-<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 input_source_select =
   Kino.Input.select("Source", [{:example, "example"}, {:puzzle_input, "puzzle input"}])
 ```
-
-<!-- livebook:{"reevaluate_automatically":true} -->
 
 ```elixir
 data = fn ->
@@ -51,7 +45,10 @@ end
 
 ```elixir
 defmodule Day16 do
+  @infinity 10_000_000
   @wall "#"
+  # @floor "."
+  
   def parse(text) do
     text
     |> AOC.as_grid()
@@ -103,17 +100,98 @@ defmodule Day16 do
   def flatter([first | _rest] = path) when is_integer(first), do: path
   def flatter([[path]]), do: flatter(path)
 
+  # Dijkstra's Algorithm - first attempt
+  # def calculate_cost_to_unvisited_neighbors(grid, costs, unvisited) do
+  #   1..Enum.count(unvisited)
+  #   |> Enum.reduce_while(costs, fn step, acc ->
+  #     visited_cells = Map.keys(acc)
+  #     cells_with_unvisited_neighbors = visited_cells
+  #       |> Enum.reduce(%{}, fn cell, acc1 -> 
+  #         unvisited_neighbors = AOC.neighbors4(grid, cell) 
+  #           |> Enum.reject(fn neighbor -> neighbor in visited_cells end)
+  #         if unvisited_neighbors == [] do
+  #           acc1
+  #         else
+  #           put_in(acc1, [cell], unvisited_neighbors)
+  #         end
+  #       end)
+  #     cells_with_unvisited_neighbors
+  #       |> Enum.reduce(acc, fn {cell1, neighbors}, acc1 ->
+  #         Enum.reduce(neighbors, fn neighbor, acc2 ->
+  #           {cost, delta} = acc1[cell1].cost +
+  #             if abs(neighbor - cell) == acc1[cell].delta do
+  #               {1, acc2[cell].delta}
+  #             else
+  #               {1000, abs(neighbor - cell)}
+  #             end
+  #           get_and_update_in(acc2, [neighbor], fn previous_cost ->
+  #             if is_nil(previous_cost) || previous_cost > cost do
+  #               {previous_cost, cost}
+  #             else
+  #               {previous_cost, previous_cost}
+  #             end
+  #           end)            
+  #         end)
+  #       end)
+  #       |> AOC.inspect(label: "#{step}")
+  #   end)
+  # end
+
+  def dijkstra(_grid, [], cells, _cells_to_check), do: {cells}
+  def dijkstra(grid, unvisited, cells, cells_to_check) do
+    Enum.reduce(cells_to_check, {unvisited, cells, cells_to_check},
+      fn cell, {unvisited1, cells1, cells_to_check1} ->
+        n4 = AOC.neighbors4(grid, cell)
+          |> Enum.reject(fn cell1 -> grid[cell1] == @wall end)
+          |> Enum.filter(fn cell1 -> cell1 in unvisited1 end)
+        if n4 == [] do
+          {unvisited1, cells1, cells_to_check1}
+        else
+          Enum.reduce(n4, {unvisited1, cells1, cells_to_check1},
+            fn neighbor, {_unvisited2, cells2, _cells_to_check2} ->
+            {cost, ddelta} = if abs(neighbor - cell) == cells[cell].delta do
+                {1, cells[cell].delta}
+              else
+                {1000, abs(neighbor - cell)}
+              end
+            get_and_update_in(cells2, [neighbor], 
+              fn %{cost: pcost, delta: _pdelta} = previous_cost ->
+                if pcost > cost do
+                  {previous_cost, %{cost: cost, delta: ddelta}}
+                else
+                  {previous_cost, previous_cost}
+                end
+              end)
+          end)
+        end
+    end)
+  end
+
+
   def solve1(text) do
     grid = parse(text)
     start = find_spot(grid, "S")
     finish = find_spot(grid, "E")
     AOC.inspect([start, finish], label: "start & finish")
+
+    # per https://en.wikipedia.org/wiki/Dijkstra's_algorithm#Algorithm
+    nodes = AOC.grid_cells(grid)
+      |> Enum.filter(fn cell -> grid[cell] != @wall end)
+      |> Enum.reduce(%{}, fn cell, acc ->
+        put_in(acc, [cell], %{cost: @infinity, delta: 1}) # 1 == East/West
+      end)
+      |> put_in([start, :cost], 0)
+    unvisited = Map.keys(nodes) -- [start]
+    dijkstra(grid, unvisited, nodes, [start])
     
-    find_paths(grid, start, finish, [start])
-    |> List.flatten()
-    |> Enum.sort()
-    |> AOC.inspect(label: "scores")
-    |> List.first()
+    unvisited = unvisited  -- [start]
+    AOC.inspect(Enum.count(unvisited))
+    AOC.inspect(unvisited)
+    
+    # costs = %{start => %{cost: 0, delta: 1}} # delta tells us direction
+    # costs = calculate_cost_to_unvisited_neighbors(grid, costs, unvisited, now)
+
+    # costs[finish]      
   end
 
   def solve2(text) do

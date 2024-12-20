@@ -52,16 +52,85 @@ end
 ```elixir
 defmodule Day19 do
   def parse(text) do
-    text
-    |> AOC.as_single_lines()
+    [patterns, request] = AOC.as_doublespaced_paragraphs(text)
+    patterns = String.split(patterns, ", ")
+      # |> Enum.reduce(%{}, fn pattern, acc ->
+      #   {_, map} = get_and_update_in(acc, [String.slice(pattern, 0..0)], fn current ->
+      #     {current, (current || []) ++ [pattern]}
+      #   end)
+      #   map
+      # end)
+    requests = AOC.as_single_lines(request)
+
+    [patterns, requests]
+  end
+
+  def can_be_made_with?(request, patterns) do
+    patterns
+    |> Enum.any?(fn pattern ->
+      cond do
+        request == pattern -> true
+        String.starts_with?(request, pattern) ->
+          can_be_made_with?(String.slice(request, String.length(pattern)..-1//1), patterns)
+        true -> false
+      end
+    end)
   end
 
   def solve1(text) do
-    parse(text)
+    [patterns, requests] = parse(text)
+    # patterns = Map.values(patterns) |> List.flatten()
+
+    requests
+    |> Enum.filter(fn request ->
+      can_be_made_with?(request, patterns)
+    end)
+    |> Enum.count()
+  end
+
+  def how_many_can_be_made_with?("", _patmap), do: 1
+  def how_many_can_be_made_with?(request, patmap) do
+    patmap.minmax
+    |> Enum.map(fn length ->
+      if String.length(request) < length do
+        0
+      else
+        request_front = String.slice(request, 0..(length - 1))
+        if patmap[request_front] do
+          # AOC.inspect([request, length, request_front, patmap[request_front], length..-1//1])
+          how_many_can_be_made_with?(String.slice(request, length..-1//1), patmap)     
+        else
+          0
+        end
+      end
+    end)
   end
 
   def solve2(text) do
-    parse(text)
+    [patterns, requests] = parse(text)
+    AOC.inspect([Enum.sort(patterns)])
+
+    patmap = patterns
+      |> Enum.reduce(%{}, fn pattern, acc -> put_in(acc, [pattern], 1) end)
+    sorted_pattern_lengths = Enum.map(patterns, &String.length/1) |> Enum.sort()
+    patmap = put_in(patmap, [:minmax], 
+      List.first(sorted_pattern_lengths)..List.last(sorted_pattern_lengths)
+      |> AOC.inspect(label: "patmap.minmax")
+    )
+    # |> AOC.inspect(label: "patmap")
+
+    requests
+    |> Enum.map(fn request ->
+      # IO.puts("Checking #{request}")
+      how_many_can_be_made_with?(request, patmap)
+      |> List.flatten()
+      # |> AOC.inspect(label: request)
+      |> Enum.sum()
+      |> AOC.inspect(label: "sum for #{request}")
+    end)
+    |> AOC.inspect()
+    |> List.flatten()
+    |> Enum.sum()
   end
 end
 
@@ -69,11 +138,14 @@ end
 
 data.()
 |> Day19.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 6)")
+# 233
 
-# data.()
-# |> Day19.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+IO.puts(Time.utc_now())
+data.()
+|> Day19.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 16)")
+IO.puts(Time.utc_now())
+# 4799 is too low, as is 264216358
+
 ```

@@ -53,8 +53,10 @@ end
 defmodule Day15 do
   @robot "@"
   @wall "#"
-  @box "O"
   @floor "."
+  @box "O"
+  @box_left "["
+  @box_right "]"
   
   def parse(text) do
     [array, moves] = text
@@ -81,10 +83,10 @@ defmodule Day15 do
     position + delta(grid, move)
   end
 
-  def attempt_to_push_box(grid, position, move) do
-    non_box_position = Enum.find((position + delta(grid, move))..(position + grid.max_dimension * delta(grid, move))//delta(grid, move), 
+  def attempt_to_push_box(grid, position, move, next_cell) do
+    step = delta(grid, move)
+    non_box_position = Enum.find((position + step)..(position + grid.max_dimension * step)//step, 
       fn farther_position ->
-        # AOC.inspect(farther_position)
         grid[farther_position] != @box  
       end)
       # |> AOC.inspect(label: "non_box_position")
@@ -92,15 +94,16 @@ defmodule Day15 do
     if grid[non_box_position] == @wall do
       {grid, position}
     else
-      # if empty floor, swap with original box and return {new-grid, next_cell}
-      next_cell = position + delta(grid, move)
-      {
-        grid
-        |> put_in([non_box_position], @box)
+      # if empty floor, move them all and return {new-grid, next_cell}
+      # (part1 could swap a smaller number, but not part2)
+      new_grid = non_box_position..position//-step
+        |> Enum.chunk_every(2, 1, :discard)
+        |> Enum.reduce(grid, fn [to_cell, from_cell], acc ->
+          put_in(acc, [to_cell], grid[from_cell])
+        end)
         |> put_in([position], @floor)
-        |> put_in([next_cell], @robot),
-        next_cell
-      }
+      
+      {new_grid, next_cell}
     end
   end
 
@@ -109,14 +112,13 @@ defmodule Day15 do
     # AOC.display_grid(grid, "START")
     robot = AOC.grid_cells(grid)
       |> Enum.find(fn cell -> grid[cell] == @robot end)
-    # grid = put_in(grid, [robot], @floor) # clear the guard spot
     
     {final_grid, _final_position} = moves
       |> Enum.reduce({grid, robot}, fn move, {acc, position} ->
         next_cell = find_next_position(acc, position, move)
         {acc, position} = case acc[next_cell] do
           @wall -> {acc, position}
-          @box -> attempt_to_push_box(acc, position, move)
+          @box -> attempt_to_push_box(acc, position, move, next_cell)
           @floor -> {
             acc
             |> put_in([position], @floor)
@@ -134,8 +136,84 @@ defmodule Day15 do
     |> Enum.sum()
   end
 
+  def scale_up(grid) do
+    grid
+    |> Enum.reduce(%{}, fn {k, v}, acc ->
+      cond do
+        is_integer(k) && v in [@floor, @wall] -> 
+          acc
+          |> put_in([2 * k], v)
+          |> put_in([2 * k + 1], v)
+        is_integer(k) && v == @robot -> 
+          acc
+          |> put_in([2 * k], @robot)
+          |> put_in([2 * k + 1], @floor)
+        is_integer(k) && v == @box -> 
+          acc
+          |> put_in([2 * k], @box_left)
+          |> put_in([2 * k + 1], @box_right)
+        k == :last_cell -> 
+          acc
+          |> put_in([:last_cell], 2 * grid.grid_height * grid.grid_width - 1)          
+        k == :infinite -> 
+          acc
+          |> put_in([:infinite], grid.infinite)
+        k == :grid_width -> 
+          acc
+          |> put_in([:grid_width], 2 * grid.grid_width)
+        true ->
+          acc
+          |> put_in([k], grid[k])
+      end
+    end)
+  end
+
+  def attempt_to_push_big_box(grid, position, move, next_cell) do
+    # find the total scope of the "box" (or pyramid or whatever)
+    big_box = (grid[next_cell] == @box_left && 
+      grid[next_cell + 1] == @box_right) && [next_cell, next_cell + 1] ||
+      [next_cell - 1, next_cell]
+
+    # if move in ["<", ">"] do
+    #   # push the pair kinda like in part 1
+    # else
+    #   # look for pyramid to push
+    # end
+    # big_box = case {} do
+    # end
+  end
+
   def solve2(text) do
-    parse(text)
+    [grid, moves] = parse(text)
+    grid = scale_up(grid)
+    AOC.display_grid(grid, "SCALED")
+    robot = AOC.grid_cells(grid)
+      |> Enum.find(fn cell -> grid[cell] == @robot end)
+    
+    {final_grid, _final_position} = moves
+      |> Enum.reduce({grid, robot}, fn move, {acc, position} ->
+        next_cell = find_next_position(acc, position, move)
+        {acc, position} = case acc[next_cell] do
+          @wall -> {acc, position}
+          @box_left -> attempt_to_push_big_box(acc, position, move, next_cell)
+          @box_right -> attempt_to_push_big_box(acc, position, move, next_cell)
+          @floor -> {
+            acc
+            |> put_in([position], @floor)
+            |> put_in([next_cell], @robot),
+            next_cell
+          }
+        end
+        # AOC.display_grid(acc, move)
+        {acc, position}    
+      end)
+
+    AOC.grid_cells(final_grid)
+    |> Enum.filter(fn cell -> final_grid[cell] == @box_left end)
+    |> Enum.map(fn cell -> 
+      100 * AOC.grid_y(final_grid, cell) + AOC.grid_x(final_grid, cell) 
+    end)
+    |> Enum.sum()
   end
 end
 

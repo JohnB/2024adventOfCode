@@ -69,7 +69,7 @@ end
 
 data.()
 |> Day20.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+|> IO.inspect(label: "\n*** Part 1 solution (example: 84/72)")
 #
 
 # data.()

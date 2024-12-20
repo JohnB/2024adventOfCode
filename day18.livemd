@@ -54,10 +54,17 @@ defmodule Day18 do
   def parse(text) do
     text
     |> AOC.as_single_lines()
+    |> Enum.map(&AOC.as_comma_separated_integers/1)
+    |> Enum.sort_by(fn [a, b] -> [b, a] end)
   end
 
   def solve1(text) do
-    parse(text)
+    dropped_bytes = parse(text)
+    |> AOC.inspect()
+    grid_size = (Enum.count(dropped_bytes) < 500) && 6 || 70
+    # dropped_bytes
+    grid = AOC.as_grid("\n.\n.\n.\n.\n.\n.\n", grid_size)
+    |> AOC.display_grid()
   end
 
   def solve2(text) do
