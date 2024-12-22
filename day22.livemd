@@ -11,6 +11,8 @@ Mix.install([
   # Join the string so a copy of dayN to dayM doesn't destroy it.
   {:kino, "~> 0.1" <> "4.2"}
 ])
+import Integer
+import Bitwise
 
 # Join the string so a copy of dayN to dayM doesn't destroy it.
 IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
@@ -51,17 +53,58 @@ end
 
 ```elixir
 defmodule Day22 do
-  def parse(text) do
+  def text_parse(text) do
     text
     |> AOC.as_single_lines()
+    |> Enum.map(&String.to_integer/1)
+  end
+
+  def mix(secret, mixin) do
+    bxor(secret, mixin)
+  end
+
+  def prune(secret) do
+    rem(secret, 16777216)
+  end
+
+  def evolve(secret) do
+    s1 = mix(secret, secret * 64) |> prune()
+    s2 = mix(s1, div(s1, 32)) |> prune()
+    _s3 = mix(s2, s2 * 2048) |> prune()
   end
 
   def solve1(text) do
-    parse(text)
+    # Enum.reduce(1..10, 123, fn _x, acc -> evolve(acc) |> IO.inspect() end)
+
+    text_parse(text)
+    |> Enum.map(fn line -> 
+      Enum.reduce(1..2000, line, fn _x, acc -> evolve(acc) end)
+    end)
+    |> Enum.sum()
+  end
+
+  def generate_price_changes(line, iterations) do
+    Enum.reduce(1..iterations, [line, [rem(line, 10)]], fn _x, [acc, prices] -> 
+        next_secret = evolve(acc)
+        [next_secret, prices ++ [rem(next_secret, 10) - rem(acc, 10)]]
+      end)
+      # |> AOC.inspect()  
   end
 
   def solve2(text) do
-    parse(text)
+    # generate_price_changes(123, 10) |> AOC.inspect()
+
+    [1, 2, 3, 2024]
+    # text_parse(text)
+    |> Enum.map(fn line -> 
+      generate_price_changes(line, 2000)
+    end)
+    |> Enum.map(fn [_secret, prices] ->
+      prices
+      |> Enum.chunk_every(4, 1, :discard)
+      |> AOC.inspect()
+      |> Enum.find(fn delta4 -> delta4 == [-2,1,-1,3] end)
+    end)
   end
 end
 
@@ -69,11 +112,11 @@ end
 
 data.()
 |> Day22.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+|> IO.inspect(label: "\n*** Part 1 solution (example: 37327623)")
+# 13022553808
 
-# data.()
-# |> Day22.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
+data.()
+|> Day22.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: )")
 #
 ```
