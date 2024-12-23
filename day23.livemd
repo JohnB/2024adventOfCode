@@ -54,14 +54,68 @@ defmodule Day23 do
   def parse(text) do
     text
     |> AOC.as_single_lines()
+    |> Enum.map(fn line -> String.split(line, "-", trim: true) end)
+    |> Enum.reduce(%{}, fn [a,b], acc ->
+      acc
+      |> add_connection(a, b)
+      |> add_connection(b, a)
+    end)
+  end
+
+  def add_connection(map, a, b) do
+    get_and_update_in(map, [a], fn current ->
+      cond do
+        is_nil(current) ->
+          {current, MapSet.new([b])}
+        true ->
+          {current, MapSet.put(current, b)}
+      end
+    end)
+    |> elem(1)
+  end
+
+  def three_way_connections(connections, computers) do
+    computers
+    |> Enum.map(fn computer ->
+      duped = for other1 <- connections[computer], other2 <- connections[computer], 
+        other1 != other2 && 
+          MapSet.member?(connections[other1], other2) &&
+          MapSet.member?(connections[other2], other1),
+        do: [computer, other1, other2] |> Enum.sort()
+
+      duped
+      # conversion to a string is necessary so a later 
+      # flatten operation won't wipe out the grouping.
+      |> Enum.map(fn list -> Enum.join(list, ",") end)
+      |> Enum.uniq()
+    end)
   end
 
   def solve1(text) do
-    parse(text)
+    connections = parse(text)
+    tees = Map.keys(connections)    
+      |> Enum.filter(fn key -> String.starts_with?(key, "t") end)
+
+    three_way_connections(connections, tees)
+    |> List.flatten()
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.count()
   end
 
   def solve2(text) do
-    parse(text)
+    connections = parse(text)
+
+    three_way_connections(connections, Map.keys(connections))
+    |> Enum.sort_by(fn list -> Enum.count(list) end, :desc)
+    |> List.first()
+    |> List.flatten()
+    # ungroup so we can extract the individual computers
+    |> Enum.map(fn csv -> String.split(csv, ",", trim: true) end)
+    |> List.flatten()
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.join(",")
   end
 end
 
@@ -70,15 +124,15 @@ end
 IO.inspect(Time.utc_now())
 data.()
 |> Day23.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+|> IO.inspect(label: "\n*** Part 1 solution (example: 7)")
 IO.inspect(Time.utc_now())
-# 
+# 1253
 
-# IO.inspect(Time.utc_now())
-# data.()
-# |> Day23.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-# IO.inspect(Time.utc_now())
-# 
+IO.inspect(Time.utc_now())
+data.()
+|> Day23.solve2()
+|> IO.inspect(label: "\n*** Part 2 solution (example: 'co,de,ka,ta')")
+IO.inspect(Time.utc_now())
+# ag,bt,cq,da,hp,hs,mi,pa,qd,qe,qi,ri,uq
 
 ```
