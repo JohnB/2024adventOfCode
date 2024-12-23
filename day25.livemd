@@ -67,13 +67,18 @@ end
 
 # Example:
 
+IO.inspect(Time.utc_now())
 data.()
 |> Day25.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: )")
-#
+IO.inspect(Time.utc_now())
+# 
 
+# IO.inspect(Time.utc_now())
 # data.()
 # |> Day25.solve2()
 # |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+# IO.inspect(Time.utc_now())
+# 
+
 ```
