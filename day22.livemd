@@ -71,6 +71,10 @@ defmodule Day22 do
     s1 = mix(secret, secret * 64) |> prune()
     s2 = mix(s1, div(s1, 32)) |> prune()
     _s3 = mix(s2, s2 * 2048) |> prune()
+    # [s1,s2,s3]
+    # |> Enum.map(fn x -> Integer.to_string(x, 16) end)
+    # |> AOC.inspect(label: "evolve of #{secret} (#{Integer.to_string(secret, 16)})")
+    # s3
   end
 
   def solve1(text) do
@@ -83,40 +87,67 @@ defmodule Day22 do
     |> Enum.sum()
   end
 
-  def generate_price_changes(line, iterations) do
-    Enum.reduce(1..iterations, [line, [rem(line, 10)]], fn _x, [acc, prices] -> 
+  def generate_prices(line, iterations) do
+    [_final_secret, pricelist] = Enum.reduce(1..iterations, [line, [rem(line, 10)]], fn _x, [acc, prices] -> 
         next_secret = evolve(acc)
-        [next_secret, prices ++ [rem(next_secret, 10) - rem(acc, 10)]]
+        [next_secret, prices ++ [rem(next_secret, 10)]]
       end)
-      # |> AOC.inspect()  
+    [line, pricelist]
   end
 
   def solve2(text) do
-    # generate_price_changes(123, 10) |> AOC.inspect()
+    # generate_prices(123, 10) |> AOC.inspect()
 
-    [1, 2, 3, 2024]
-    # text_parse(text)
+    # result = [1, 2, 3, 2024]
+    result = text_parse(text)
     |> Enum.map(fn line -> 
-      generate_price_changes(line, 2000)
+      generate_prices(line, 2000)
     end)
-    |> Enum.map(fn [_secret, prices] ->
+    |> Enum.reduce(%{}, fn [initial_secret, prices], acc ->
       prices
-      |> Enum.chunk_every(4, 1, :discard)
-      |> AOC.inspect()
-      |> Enum.find(fn delta4 -> delta4 == [-2,1,-1,3] end)
+      |> Enum.chunk_every(5, 1, :discard)
+      |> Enum.reduce(acc, fn five_prices, acc1 ->
+        delta4 = Enum.chunk_every(five_prices, 2, 1, :discard)
+          |> Enum.map(fn [a, b] -> b - a end)
+        last_price = List.last(five_prices)
+        get_and_update_in(acc1, [delta4], fn current_value ->
+          cond do
+            is_nil(current_value) -> 
+              {current_value, %{sum: last_price, found_in: MapSet.new([initial_secret])}} 
+            MapSet.member?(current_value.found_in, initial_secret) ->
+              {current_value, current_value}
+            true ->
+              {current_value, %{sum: current_value.sum + last_price, 
+                found_in: MapSet.put(current_value.found_in, initial_secret) }}
+          end
+        end)
+        |> elem(1) 
+      end)
     end)
+
+    # result[[-2,1,-1,3]]
+    # |> AOC.inspect(label: "[-2,1,-1,3]")
+
+    result
+    |> Enum.sort_by(fn {_delta4, %{sum: sum, found_in: _found_in}} -> sum end, :desc)
+    |> List.first()
   end
 end
 
 # Example:
 
+IO.inspect(Time.utc_now())
 data.()
 |> Day22.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 37327623)")
+IO.inspect(Time.utc_now())
 # 13022553808
 
+IO.inspect(Time.utc_now())
 data.()
 |> Day22.solve2()
 |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+IO.inspect(Time.utc_now())
+# 1555
+
 ```
