@@ -51,57 +51,49 @@ end
 
 ```elixir
 defmodule Day25 do
+  @empty "."
+  @filled "#"
+  
+  def line_empty?(grid, cells) do
+    Enum.all?(cells, fn cell -> grid[cell] == @empty end)
+  end
+  def top_line_empty?(grid), do: line_empty?(grid, 0..(grid.grid_width - 1))
+  def bottom_line_empty?(grid) do
+    line_empty?(grid, (grid.last_cell - grid.grid_width + 1)..grid.last_cell)
+  end
+  
   def parse(text) do
-    [wires, connections] = text
+    grids = text
       |> AOC.as_doublespaced_paragraphs()
+      |> Enum.map(fn paragraph -> AOC.as_grid(paragraph) end)
+    keys = Enum.filter(grids, fn grid -> top_line_empty?(grid) end)
+    locks = Enum.filter(grids, fn grid -> bottom_line_empty?(grid) end)
 
-    wires = wires
-      |> AOC.as_single_lines()
-      |> Enum.reduce(%{}, fn line, acc ->
-        [wire, value] = String.split(line, ": ", trim: true)
-        # put_in(acc, [wire], fn _map -> value end)
-        acc
-      end)
-
-    {:ok, f} = File.open("junk.dot", [:write])
-    IO.puts(f, "graph day24 {")
-    connections = connections
-      |> AOC.as_single_lines()
-      |> Enum.reduce(wires, fn line, acc ->
-        [operation, output] = String.split(line, " -> ", trim: true)
-        [[_, input1, op, input2]] = Regex.scan(~r/(...) (AND|OR|XOR) (...)/, operation)
-        # IO.puts(f, "#{input1} --- #{output}[#{op} to #{output}]")
-        # IO.puts(f, "#{input2} --- #{output}[#{op} to #{output}]")
-        put_in(acc, [output], "\t#{input1} -- #{output} [label=\"#{op}\"]; \n\t#{input2} -- #{output} [label=\"#{op}\"];")
-        # acc
-      end)
-
-    xyz = connections
-      |> Map.keys()
-      |> Enum.filter(fn key -> String.slice(key, 0..0) in ["x", "y", "z"] end)
-    
-    xyz
-    |> Enum.sort()
-    |> Enum.each(fn key -> IO.puts(f, connections[key]) end)
-
-    (Map.keys(connections) -- xyz)
-    |> Enum.sort()
-    |> Enum.each(fn key -> IO.puts(f, connections[key]) end)
-    # |> Enum.each(fn lines -> IO.puts(lines) end)
-    
-    IO.puts(f, "}")
-    File.close(f)
-
-    [connections, wires]
+    [keys, locks]
   end
 
   def solve1(text) do
-    parse(text)
-    "cat ~/junk.dot | pbcopy"
+    [keys, locks] = parse(text)
+
+    keys
+    |> Enum.reduce(0, fn key, acc ->
+      locks
+      |> Enum.reduce(acc, fn lock, acc1 ->
+        if lock.grid_height == key.grid_height &&
+          lock.grid_width == key.grid_width &&
+          Enum.all?(AOC.grid_cells(lock), fn cell ->
+            lock[cell] != @filled || key[cell] != @filled
+          end) do
+          acc1 + 1
+        else
+          acc1
+        end
+      end)
+    end)
   end
 
-  def solve2(text) do
-    parse(text)
+  def solve2(_text) do
+    # There is no real part 2 - just a free star if/when you've solved all the others.
   end
 end
 
@@ -110,7 +102,7 @@ end
 IO.inspect(Time.utc_now())
 data.()
 |> Day25.solve1()
-|> IO.inspect(label: "\n*** Part 1 solution (example: )")
+|> IO.inspect(label: "\n*** Part 1 solution (example: 3)")
 IO.inspect(Time.utc_now())
 # 
 
