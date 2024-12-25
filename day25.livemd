@@ -52,12 +52,52 @@ end
 ```elixir
 defmodule Day25 do
   def parse(text) do
-    text
-    |> AOC.as_single_lines()
+    [wires, connections] = text
+      |> AOC.as_doublespaced_paragraphs()
+
+    wires = wires
+      |> AOC.as_single_lines()
+      |> Enum.reduce(%{}, fn line, acc ->
+        [wire, value] = String.split(line, ": ", trim: true)
+        # put_in(acc, [wire], fn _map -> value end)
+        acc
+      end)
+
+    {:ok, f} = File.open("junk.dot", [:write])
+    IO.puts(f, "graph day24 {")
+    connections = connections
+      |> AOC.as_single_lines()
+      |> Enum.reduce(wires, fn line, acc ->
+        [operation, output] = String.split(line, " -> ", trim: true)
+        [[_, input1, op, input2]] = Regex.scan(~r/(...) (AND|OR|XOR) (...)/, operation)
+        # IO.puts(f, "#{input1} --- #{output}[#{op} to #{output}]")
+        # IO.puts(f, "#{input2} --- #{output}[#{op} to #{output}]")
+        put_in(acc, [output], "\t#{input1} -- #{output} [label=\"#{op}\"]; \n\t#{input2} -- #{output} [label=\"#{op}\"];")
+        # acc
+      end)
+
+    xyz = connections
+      |> Map.keys()
+      |> Enum.filter(fn key -> String.slice(key, 0..0) in ["x", "y", "z"] end)
+    
+    xyz
+    |> Enum.sort()
+    |> Enum.each(fn key -> IO.puts(f, connections[key]) end)
+
+    (Map.keys(connections) -- xyz)
+    |> Enum.sort()
+    |> Enum.each(fn key -> IO.puts(f, connections[key]) end)
+    # |> Enum.each(fn lines -> IO.puts(lines) end)
+    
+    IO.puts(f, "}")
+    File.close(f)
+
+    [connections, wires]
   end
 
   def solve1(text) do
     parse(text)
+    "cat ~/junk.dot | pbcopy"
   end
 
   def solve2(text) do
