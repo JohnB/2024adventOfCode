@@ -1,0 +1,74 @@
+<!-- vim: syntax=markdown -->
+
+# Euler 191
+
+```elixir
+Mix.install([
+  # Join the string so a copy of dayN to dayM doesn't destroy it.
+  {:kino, "~> 0.1" <> "4.2"}
+])
+
+# Join the string so a copy of dayN to dayM doesn't destroy it.
+IEx.Helpers.c("/Users/johnb/dev/2" <> "0" <> "2" <> "4adventOfCode/advent_of_code.ex")
+alias AdventOfCode, as: AOC
+alias Kino.Input
+```
+
+## Solution
+
+```elixir
+# A particular school offers cash rewards to children with good attendance and punctuality. 
+# If they are absent for three consecutive days or late on more than one occasion then they
+# forfeit their prize.
+#
+# During an n-day period a trinary string is formed for each child consisting of L's (late), 
+#  O's (on time), and A's (absent).
+# 
+# Although there are eighty-one trinary strings for a 4-day period that can be formed, 
+# exactly forty-three strings would lead to a prize:
+#
+# How many "prize" strings exist over a 30-day period?
+
+defmodule Euler191 do
+  def iterate(_days = 0, state), do: prizes(state)
+  def iterate(days, %{absences: absences, lates: lates, string: string} = state) do
+    o_result = prizes(days, "O", state)
+    a_result = prizes(days, "A", %{o_result | absences: absences, lates: lates, string: string})
+    l_result = prizes(days, "L", %{a_result | absences: absences, lates: lates, string: string})
+
+    l_result
+  end
+  
+  def prizes(n_days, "O", %{string: string} = state), do: 
+    iterate(n_days - 1, %{state | absences: 0, string: string <> "O"})
+  def prizes(n_days, "L", %{lates: 0, string: string} = state), do: 
+    iterate(n_days - 1, %{state | absences: 0, lates: 1, string: string <> "L"})
+  def prizes(_n_days, "L", state), 
+    do: state
+  def prizes(_n_days, "A", %{absences: 2} = state), 
+    do: state
+  def prizes(n_days, "A", %{absences: absences, string: string} = state), 
+    do: iterate(n_days - 1, %{state | absences: absences + 1, string: string <> "A"})
+  def prizes(%{prize_strings: prize_strings} = state), 
+    do: %{state | prize_strings: prize_strings + 1} # adding [string] only works for small numbers
+  def prizes(n_days) do
+    empty_state = %{absences: 0, lates: 0, prize_strings: 0, string: ""}
+    result = iterate(n_days, empty_state)
+
+    # IO.inspect(result.prize_strings)
+    IO.puts result.prize_strings
+  end
+end
+
+# Example:
+
+result = Euler191.prizes(30)
+|> IO.inspect()
+
+# 43 results expected for 4:
+# OOOO OOOA OOOL OOAO OOAA OOAL OOLO OOLA OAOO OAOA
+# OAOL OAAO OAAL OALO OALA OLOO OLOA OLAO OLAA AOOO
+# AOOA AOOL AOAO AOAA AOAL AOLO AOLA AAOO AAOA AAOL
+# AALO AALA ALOO ALOA ALAO ALAA LOOO LOOA LOAO LOAA
+# LAOO LAOA LAAO
+```
