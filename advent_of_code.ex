@@ -17,6 +17,23 @@ defmodule AdventOfCode do
   # Grid-based helpers
 
   @doc """
+    Creates a grid of a specified size with a specified initial values.
+  """
+  def as_solid_grid(width, height, initial_value \\ nil) do
+    last_cell = width * height - 1
+
+    (0..last_cell)
+    |> Map.new(fn index -> {index, initial_value} end)
+    |> Map.merge(%{
+      grid_width: width,
+      grid_height: height,
+      infinite: false,
+      max_dimension: max(width, height),
+      last_cell: last_cell
+    })
+  end
+
+  @doc """
     Reads in a grid of characters, returning a map
   """
   def as_grid(multiline_text, width \\ nil) do
@@ -128,6 +145,7 @@ defmodule AdventOfCode do
 
   def grid_x(grid, cell), do: rem(cell, grid.grid_width)
   def grid_y(grid, cell), do: div(cell, grid.grid_width)
+  def cell_id(grid, x, y), do: x + y * grid.grid_width
 
   def to_text_grid(grid) do
     grid_rows(grid)
@@ -194,7 +212,63 @@ defmodule AdventOfCode do
 
     grid
   end
-  
+
+  # Dijkstra
+  #   Implement https://en.wikipedia.org/wiki/Dijkstra's_algorithm#Algorithm
+  @infinity 1_000_000_000_000
+  @wall "#"
+  @cost 1
+
+  def shortest_path(grid, latest_nodes, node_map, cost_function, finish) do
+    {updated_node_map, neighbor_nodes} = latest_nodes
+                                         |> Enum.reduce({node_map, MapSet.new()}, fn node, {map, set} ->
+      unvisited_neighbors = grid
+                            |> neighbors4(node)
+                            |> Enum.filter(fn neighbor ->
+        neighbor in Map.keys(node_map)  && node_map[neighbor].cost == @infinity
+      end)
+
+      unvisited_neighbors
+      |> Enum.reduce({map, set}, fn neighbor, {map1, set1} ->
+        {cost_function.(map1, node, neighbor), MapSet.put(set1, neighbor)}
+      end)
+    end)
+    # |> inspect(label: "{updated_node_map, neighbor_nodes}")
+
+    if updated_node_map[finish].path == [] do
+      shortest_path(grid, MapSet.to_list(neighbor_nodes), updated_node_map, cost_function, finish)
+    else
+      updated_node_map
+    end
+  end
+
+  def shortest_path(grid, start, finish) do
+    # Step 1: Find the unvisited set.
+    node_map = Enum.reject(grid_cells(grid), fn k -> grid[k] == @wall end)
+               # Step 2: Assign distances to unvisited nodes. The start node will get a 0 distance.
+               |> Enum.reduce(%{}, fn index, acc ->
+      if index == start do
+        Map.put(acc, index, %{cost: 0, path: [start]})
+      else
+        # Note: an empty path list means it is un-visited
+        Map.put(acc, index, %{cost: @infinity, path: []})
+      end
+    end)
+    # |> inspect(label: "node_map")
+
+    cost_function = fn map, a, b ->
+      # This handles Step 3 and Step 4: update path and distance from neighbors.
+      cost_from_a = map[a].cost + @cost
+      if map[b].cost < cost_from_a do
+        # Nothing to do - the node already has the lower cost & path
+        map
+      else
+        Map.put(map, b, %{cost: cost_from_a, path: map[a].path ++ [b]})
+      end
+    end
+    shortest_path(grid, [start], node_map, cost_function, finish)
+  end
+
   # Paragraph-based helpers
   def as_single_lines(multiline_text) do
     multiline_text
