@@ -44,159 +44,136 @@ end
 ## Solution
 
 ```elixir
-defmodule Day16 do
-  @infinity 10_000_000
-  @wall "#"
-  # @floor "."
-  
-  def parse(text) do
-    text
-    |> AOC.as_grid()
-  end
 
+defmodule Day16 do
+  @infinity 1_000_000_000_000 # must match value in AOC module!
+  @cost 1
+  @wall_cell "#"
+  @straight_cost 1
+  @turn_cost 1_001 # turn + straight_cost
+  
   def find_spot(grid, value) do
     AOC.grid_cells(grid)
     |> Enum.find(fn cell -> grid[cell] == value end)
   end
 
-  def score_path(path) do
-    [start, next] = Enum.slice(path, 0..1)
-    start_score = (next == start + 1) && 0 || 1000
-    finish_score = 0 # we don't care what direction they face
-    path_score = Enum.count(path) - 1
-    # AOC.inspect([start_score, finish_score, path_score])
+  # These are special versions that re-calculate "future" nodes after a smaller
+  # cost is found for an already-calculated node.
+  def shortest_path(_grid, [], _node_map, _cost_function, _finish), do: "WTF?"
+  def shortest_path(grid, latest_nodes, node_map, cost_function, finish) do
+    # AdventOfCode.inspect([latest_nodes, finish], label: "-----")
+    {updated_node_map, neighbor_nodes} =
+      latest_nodes
+      |> Enum.reduce({node_map, MapSet.new()}, fn node, {map, set} ->
+        # Do not create a path *beyond* the finish
+        unvisited_neighbors = if node == finish do
+            []
+          else
+            grid
+            |> AOC.neighbors4(node)
+            |> Enum.filter(fn neighbor ->
+              neighbor in Map.keys(node_map) && node_map[neighbor].cost > node_map[node].cost
+            end)
+          end
 
-    path
-    |> Enum.chunk_every(3, 1, :discard)
-    |> Enum.reduce(start_score + finish_score + path_score, fn [a,b,c], acc ->
-      acc + (((a + c) / 2 == b) && 0 || 1000)
-    end)
-  end
-
-  def find_paths(_grid, finish, finish, path) do
-    path 
-    # |> AOC.inspect(label: "complete!")
-    |> score_path()
-    # |> AOC.inspect(label: "score")
-  end
-  def find_paths(grid, start, finish, path) do
-    # AOC.inspect([start, finish, path])
-    n4 = AOC.neighbors4(grid, start)
-      |> Enum.reject(fn cell -> cell in path end)
-      |> Enum.reject(fn cell -> grid[cell] == @wall end)
-      # |> AOC.inspect(label: "n4")
-
-    if n4 == [] do
-      :blocked
-    else
-      n4
-      |> Enum.map(fn cell -> 
-        find_paths(grid, cell, finish, path ++ [cell]) 
+        unvisited_neighbors
+        |> Enum.reduce({map, set}, fn neighbor, {map1, set1} ->
+          {cost_function.(map1, node, neighbor), MapSet.put(set1, neighbor)}
+        end)
       end)
-      |> Enum.reject(fn list -> list in [nil, [], :blocked] end)
+#     |> IO.inspect(label: "{updated_node_map, neighbor_nodes}")
+
+    future_neighbors = MapSet.to_list(neighbor_nodes)
+      # |> Enum.sort()
+      # |> Enum.reverse()
+
+#    if updated_node_map[finish].path == [] do
+    if future_neighbors != [] do
+      shortest_path(grid, future_neighbors, updated_node_map, cost_function, finish)
+    else
+      updated_node_map
     end
   end
 
-  def flatter([first | _rest] = path) when is_integer(first), do: path
-  def flatter([[path]]), do: flatter(path)
-
-  # Dijkstra's Algorithm - first attempt
-  # def calculate_cost_to_unvisited_neighbors(grid, costs, unvisited) do
-  #   1..Enum.count(unvisited)
-  #   |> Enum.reduce_while(costs, fn step, acc ->
-  #     visited_cells = Map.keys(acc)
-  #     cells_with_unvisited_neighbors = visited_cells
-  #       |> Enum.reduce(%{}, fn cell, acc1 -> 
-  #         unvisited_neighbors = AOC.neighbors4(grid, cell) 
-  #           |> Enum.reject(fn neighbor -> neighbor in visited_cells end)
-  #         if unvisited_neighbors == [] do
-  #           acc1
-  #         else
-  #           put_in(acc1, [cell], unvisited_neighbors)
-  #         end
-  #       end)
-  #     cells_with_unvisited_neighbors
-  #       |> Enum.reduce(acc, fn {cell1, neighbors}, acc1 ->
-  #         Enum.reduce(neighbors, fn neighbor, acc2 ->
-  #           {cost, delta} = acc1[cell1].cost +
-  #             if abs(neighbor - cell) == acc1[cell].delta do
-  #               {1, acc2[cell].delta}
-  #             else
-  #               {1000, abs(neighbor - cell)}
-  #             end
-  #           get_and_update_in(acc2, [neighbor], fn previous_cost ->
-  #             if is_nil(previous_cost) || previous_cost > cost do
-  #               {previous_cost, cost}
-  #             else
-  #               {previous_cost, previous_cost}
-  #             end
-  #           end)            
-  #         end)
-  #       end)
-  #       |> AOC.inspect(label: "#{step}")
-  #   end)
-  # end
-
-  def dijkstra(_grid, [], cells, _cells_to_check), do: {cells}
-  def dijkstra(grid, unvisited, cells, cells_to_check) do
-    Enum.reduce(cells_to_check, {unvisited, cells, cells_to_check},
-      fn cell, {unvisited1, cells1, cells_to_check1} ->
-        n4 = AOC.neighbors4(grid, cell)
-          |> Enum.reject(fn cell1 -> grid[cell1] == @wall end)
-          |> Enum.filter(fn cell1 -> cell1 in unvisited1 end)
-        if n4 == [] do
-          {unvisited1, cells1, cells_to_check1}
+  def shortest_path(grid, start, finish) do
+    # Step 1: Find the unvisited set.
+    node_map =
+      Enum.reject(AOC.grid_cells(grid), fn k -> grid[k] == @wall_cell end)
+      # Step 2: Assign distances to unvisited nodes. The start node will get a 0 distance.
+      |> Enum.reduce(%{}, fn index, acc ->
+        if index == start do
+          Map.put(acc, index, %{cost: 0, path: [start]})
         else
-          Enum.reduce(n4, {unvisited1, cells1, cells_to_check1},
-            fn neighbor, {_unvisited2, cells2, _cells_to_check2} ->
-            {cost, ddelta} = if abs(neighbor - cell) == cells[cell].delta do
-                {1, cells[cell].delta}
-              else
-                {1000, abs(neighbor - cell)}
-              end
-            get_and_update_in(cells2, [neighbor], 
-              fn %{cost: pcost, delta: _pdelta} = previous_cost ->
-                if pcost > cost do
-                  {previous_cost, %{cost: cost, delta: ddelta}}
-                else
-                  {previous_cost, previous_cost}
-                end
-              end)
-          end)
+          # Note: an empty path list means it is un-visited
+          Map.put(acc, index, %{cost: @infinity, path: []})
         end
-    end)
-  end
+      end)
 
+    # |> inspect(label: "node_map")
+
+    cost_function = fn map, a, b ->
+      # This handles Step 3 and Step 4: update path and distance from neighbors.
+      cost_from_a = map[a].cost + @cost
+
+      if map[b].cost < cost_from_a do
+        # Nothing to do - the node already has the lower cost & path
+        map
+      else
+        Map.put(map, b, %{cost: cost_from_a, path: map[a].path ++ [b]})
+      end
+    end
+
+    shortest_path(grid, [start], node_map, cost_function, finish)
+  end
 
   def solve1(text) do
-    grid = parse(text)
-    start = find_spot(grid, "S")
-    finish = find_spot(grid, "E")
-    AOC.inspect([start, finish], label: "start & finish")
+    maze = AOC.as_maze(text)
+    start = maze[:S]
+    finish = maze[:E]
+    direction = "E"
 
-    # per https://en.wikipedia.org/wiki/Dijkstra's_algorithm#Algorithm
-    nodes = AOC.grid_cells(grid)
-      |> Enum.filter(fn cell -> grid[cell] != @wall end)
-      |> Enum.reduce(%{}, fn cell, acc ->
-        put_in(acc, [cell], %{cost: @infinity, delta: 1}) # 1 == East/West
-      end)
-      |> put_in([start, :cost], 0)
-    unvisited = Map.keys(nodes) -- [start]
-    dijkstra(grid, unvisited, nodes, [start])
-    
-    unvisited = unvisited  -- [start]
-    AOC.inspect(Enum.count(unvisited))
-    AOC.inspect(unvisited)
-    
-    # costs = %{start => %{cost: 0, delta: 1}} # delta tells us direction
-    # costs = calculate_cost_to_unvisited_neighbors(grid, costs, unvisited, now)
+    # Step 1: Find the unvisited set.
+    node_map = AOC.grid_cells(maze)
+               # Step 2: Assign distances to unvisited nodes. The start node will get a 0 distance.
+               |> Enum.reduce(maze, fn index, acc ->
+      if index == start do
+        Map.put(acc, index, %{cost: 0, path: [start], direction: direction})
+      else
+        # Note: an empty path list means it is un-visited
+        Map.put(acc, index, %{cost: @infinity, path: [], direction: direction})
+      end
+    end)
+    # AOC.display_grid(maze)
 
-    # costs[finish]      
+    cost_function = fn map, a, b ->
+      if finish in [a, b], do: AOC.inspect([a, b, map[a], map[b]])
+      
+      # IO.puts("cost_function #{a} -> #{b}")
+      # This handles Step 3 and Step 4: update path and distance from neighbors.
+      # NOTE: only track east-west direction ("E") or north-south ("N")
+      direction = (abs(a - b) == 1) && "E" || "N"
+      direction_cost = (direction == map[a].direction) && @straight_cost || @turn_cost
+      cost_from_a = map[a].cost + direction_cost
+      # AOC.inspect([direction, a, b, map[a].cost, direction_cost, cost_from_a])
+      if map[a].cost >= @infinity, do: raise("oops")
+      if map[b].cost <= cost_from_a do
+        if b == finish do
+          AOC.inspect([cost_from_a, a, b, map[a], map[b]], label: "at finish")
+        end
+        # Nothing to do - the node already has the lower cost & path
+        map
+      else
+        Map.put(map, b, %{cost: cost_from_a, path: map[a].path ++ [b], direction: direction})
+      end
+    end
+    updated_node_map = shortest_path(maze, [start], node_map, cost_function, finish)
+    %{path: _finish_path, cost: _finish_cost} = updated_node_map[finish]
+    
   end
 
-  def solve2(text) do
-    parse(text)
-  end
+  # def solve2(text) do
+  #   parse(text)
+  # end
 end
 
 # Example:
@@ -204,10 +181,11 @@ end
 data.()
 |> Day16.solve1()
 |> IO.inspect(label: "\n*** Part 1 solution (example: 11048)")
-#
+# 135512
 
-# data.()
-# |> Day16.solve2()
-# |> IO.inspect(label: "\n*** Part 2 solution (example: )")
-#
+###########
+#........E#
+#.#.#.###.#
+#S..#...#.#
+###########
 ```
